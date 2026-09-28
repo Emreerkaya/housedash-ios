@@ -1,0 +1,69 @@
+name: HouseDash
+options:
+  bundleIdPrefix: com.housedash
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+
+packages:
+  DesignSystem:
+    path: Packages/DesignSystem
+  Networking:
+    path: Packages/Networking
+  Features:
+    path: Packages/Features
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  HouseDash:
+    type: application
+    platform: iOS
+    sources:
+      - path: App/HouseDash
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.housedash.app
+        PRODUCT_NAME: HouseDash
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        GENERATE_INFOPLIST_FILE: "YES"
+        TARGETED_DEVICE_FAMILY: "1"
+    dependencies:
+      - package: DesignSystem
+      - package: Networking
+      - package: Features
+
+  HouseDashTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: HouseDashTests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.housedash.app.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+    dependencies:
+      - target: HouseDash
+      - package: DesignSystem
+
+schemes:
+  HouseDash:
+    build:
+      targets:
+        HouseDash: all
+        HouseDashTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - HouseDashTests
