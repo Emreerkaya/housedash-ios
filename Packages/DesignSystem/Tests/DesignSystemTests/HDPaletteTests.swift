@@ -15,9 +15,9 @@ final class HDPaletteTests: XCTestCase {
     func testHexComponentsParseKnownGroundValue() {
         let components = HDHexComponents(hex: "#E3DCD6")
         XCTAssertNotNil(components)
-        XCTAssertEqual(components?.red ?? 0, 0xE3.0 / 255.0, accuracy: 0.001)
-        XCTAssertEqual(components?.green ?? 0, 0xDC.0 / 255.0, accuracy: 0.001)
-        XCTAssertEqual(components?.blue ?? 0, 0xD6.0 / 255.0, accuracy: 0.001)
+        XCTAssertEqual(components?.red ?? 0, Double(0xE3) / 255.0, accuracy: 0.001)
+        XCTAssertEqual(components?.green ?? 0, Double(0xDC) / 255.0, accuracy: 0.001)
+        XCTAssertEqual(components?.blue ?? 0, Double(0xD6) / 255.0, accuracy: 0.001)
     }
 
     #if canImport(UIKit)

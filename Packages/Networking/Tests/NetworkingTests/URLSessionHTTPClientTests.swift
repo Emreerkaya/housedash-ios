@@ -25,7 +25,7 @@ private final class StubURLProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
-private struct EchoDTO: Decodable, Equatable {
+private struct EchoDTO: Codable, Equatable {
     let value: String
 }
 
