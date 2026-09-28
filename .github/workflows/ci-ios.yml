@@ -1,0 +1,55 @@
+name: ci-ios
+
+on:
+  pull_request:
+
+concurrency:
+  group: ios-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: extractions/setup-just@v4
+      - run: just commits origin/${{ github.base_ref }}
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: false
+
+  ios-build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      - run: brew install xcodegen
+      - run: just ios-build
+
+  ios-test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      - run: brew install xcodegen
+      - run: just ios-test
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-test-results
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
+          if-no-files-found: ignore
