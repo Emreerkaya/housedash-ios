@@ -42,6 +42,7 @@ public enum HDType {
     public static let factRow = HDTypeStyle(size: 15, weight: .regular, tracking: -0.132)
     public static let bodyDense = HDTypeStyle(size: 15, weight: .regular, tracking: -0.132)
     public static let caption = HDTypeStyle(size: 13, weight: .regular, tracking: -0.042)
+    public static let chevron = HDTypeStyle(size: 30, weight: .regular, tracking: 0)
 }
 
 public extension View {
