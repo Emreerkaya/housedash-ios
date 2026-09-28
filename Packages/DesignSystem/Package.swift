@@ -10,6 +10,10 @@ let package = Package(
     targets: [
         .target(
             name: "DesignSystem",
+            resources: [
+                .copy("Resources/Fonts/ZillaSlab-SemiBold.ttf"),
+                .copy("Resources/Fonts/OFL.txt")
+            ],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .testTarget(
