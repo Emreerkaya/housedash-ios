@@ -29,13 +29,18 @@ targets:
     platform: iOS
     sources:
       - path: App/HouseDash
+    info:
+      path: Generated/HouseDash-Info.plist
+      properties:
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIAppFonts:
+          - ZillaSlab-SemiBold.ttf
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.housedash.app
         PRODUCT_NAME: HouseDash
-        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
-        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
-        GENERATE_INFOPLIST_FILE: "YES"
         TARGETED_DEVICE_FAMILY: "1"
     dependencies:
       - package: DesignSystem

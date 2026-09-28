@@ -1,19 +1,36 @@
 import SwiftUI
 
 public struct HDTypeStyle: Sendable, Equatable {
+    public enum Family: Sendable, Equatable {
+        case system
+        case zillaSlabSemiBold
+    }
+
     public let size: CGFloat
     public let weight: Font.Weight
     public let tracking: CGFloat
+    public let family: Family
 
-    public init(size: CGFloat, weight: Font.Weight, tracking: CGFloat) {
+    public init(size: CGFloat, weight: Font.Weight, tracking: CGFloat, family: Family = .system) {
         self.size = size
         self.weight = weight
         self.tracking = tracking
+        self.family = family
+    }
+
+    public var font: Font {
+        switch family {
+        case .system:
+            return .system(size: size, weight: weight)
+        case .zillaSlabSemiBold:
+            _ = HDZillaSlab.registerOnce
+            return .custom(HDZillaSlab.postScriptName, size: size)
+        }
     }
 }
 
 public enum HDType {
-    public static let titleLarge = HDTypeStyle(size: 31, weight: .semibold, tracking: -0.666)
+    public static let titleLarge = HDTypeStyle(size: 31, weight: .semibold, tracking: -0.6665, family: .zillaSlabSemiBold)
     public static let money = HDTypeStyle(size: 44, weight: .bold, tracking: -0.977)
     public static let headlineFigure = HDTypeStyle(size: 32, weight: .bold, tracking: -0.691)
     public static let quote = HDTypeStyle(size: 22, weight: .regular, tracking: -0.403)
@@ -30,7 +47,7 @@ public enum HDType {
 public extension View {
     func hdTypeStyle(_ style: HDTypeStyle) -> some View {
         self
-            .font(.system(size: style.size, weight: style.weight, design: .default))
+            .font(style.font)
             .tracking(style.tracking)
     }
 }
