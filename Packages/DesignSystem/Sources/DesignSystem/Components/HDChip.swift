@@ -6,6 +6,8 @@ public struct HDChip: View {
         case unselected
     }
 
+    public static let minimumHeight: CGFloat = 44
+
     private let label: String
     private let state: State
     private let action: () -> Void
@@ -19,13 +21,12 @@ public struct HDChip: View {
     public var body: some View {
         Button(action: action) {
             HDText(label, style: HDType.label, color: textColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
                 .padding(.horizontal, 18)
-                .frame(width: 92, height: 40)
+                .frame(minHeight: Self.minimumHeight)
                 .background(fill, in: Capsule())
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(state == .selected ? .isSelected : [])
     }
 
     var fill: Color {
