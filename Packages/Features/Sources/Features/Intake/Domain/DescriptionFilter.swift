@@ -76,9 +76,15 @@ public enum DescriptionFilter {
     public static let mostDigitsInAPhoneGroup = 6
     public static let phoneGroupsADialableNumberHas = 3...6
     public static let fewestDomainLabels = 2
+    public static let punctuationTheThousandsArmOwns = ",;:"
+    public static let mostDigitsBeforeAThousandsSeparator = 3
+    public static let digitsInAThousandsGroup = 3
 
     private static let phoneCandidate = expression(
-        #"\+?+\p{Nd}(?:[^\p{L}\p{Nd},;:]{0,8}+\p{Nd}){0,31}+"#
+        #"\+?+\p{Nd}(?:[^\p{L}\p{Nd}]{0,8}+\p{Nd}){0,31}+"#
+    )
+    private static let thousandsSeparator = expression(
+        #"^[\#(punctuationTheThousandsArmOwns)]\p{Zs}{0,2}+$"#
     )
     private static let digitGroup = expression(#"\p{Nd}++"#)
     private static let emailCandidate = expression(
@@ -140,10 +146,33 @@ public enum DescriptionFilter {
         candidates(phoneCandidate, in: text).contains(where: isDialable)
     }
 
+    static func separatorsBetweenGroups(in candidate: String) -> [String] {
+        let range = NSRange(candidate.startIndex..<candidate.endIndex, in: candidate)
+        let groups = digitGroup.matches(in: candidate, range: range)
+        guard groups.count > 1 else { return [] }
+        return (1..<groups.count).compactMap { index in
+            let start = groups[index - 1].range.upperBound
+            let gap = NSRange(location: start, length: groups[index].range.lowerBound - start)
+            return Range(gap, in: candidate).map { String(candidate[$0]) }
+        }
+    }
+
+    static func isGroupedByTheThousandsMarks(_ separators: [String]) -> Bool {
+        !separators.isEmpty && separators.allSatisfy { matches(thousandsSeparator, in: $0) }
+    }
+
+    static func isGroupedLikeThousands(_ groups: [Int]) -> Bool {
+        guard let leading = groups.first else { return false }
+        return leading <= mostDigitsBeforeAThousandsSeparator
+            && groups.dropFirst().allSatisfy { $0 == digitsInAThousandsGroup }
+    }
+
     static func isDialable(_ candidate: String) -> Bool {
         let groups = candidates(digitGroup, in: candidate).map(\.count)
         let digits = groups.reduce(0, +)
         guard digitsInAPhoneNumber.contains(digits) else { return false }
+        let separators = separatorsBetweenGroups(in: candidate)
+        if isGroupedByTheThousandsMarks(separators), isGroupedLikeThousands(groups) { return false }
         if candidate.hasPrefix("+") { return true }
         guard
             phoneGroupsADialableNumberHas.contains(groups.count),

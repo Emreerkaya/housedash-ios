@@ -2,13 +2,32 @@ import XCTest
 @testable import Features
 
 final class ContactFilterFamilyTests: XCTestCase {
-    private static let separators = ["-", ".", " "]
+    private static let separators = ["-", ".", " ", ",", ";"]
+    private static let marksTheThousandsArmOwns: Set<Character> = [",", ";", ":"]
+    private static let mostDigitsBeforeAThousandsSeparator = 3
+    private static let digitsInAThousandsGroup = 3
     private static let groupLengths = 1...4
     private static let mostGroupsSwept = 4
     private static let carrier = "the plate reads "
     private static let trailer = " next to the valve"
 
-    private static func isDialableUnderTheServersRule(_ groups: [Int]) -> Bool {
+    private static func isGroupedByTheThousandsMarks(_ separators: [String]) -> Bool {
+        guard !separators.isEmpty else { return false }
+        return separators.allSatisfy { separator in
+            guard let mark = separator.first, marksTheThousandsArmOwns.contains(mark) else { return false }
+            let trailing = separator.dropFirst()
+            return trailing.count <= 2 && trailing.allSatisfy { $0 == " " }
+        }
+    }
+
+    private static func isGroupedLikeThousands(_ groups: [Int]) -> Bool {
+        guard let leading = groups.first else { return false }
+        return leading <= mostDigitsBeforeAThousandsSeparator
+            && groups.dropFirst().allSatisfy { $0 == digitsInAThousandsGroup }
+    }
+
+    private static func isDialableUnderTheServersRule(_ groups: [Int], _ separators: [String]) -> Bool {
+        if isGroupedByTheThousandsMarks(separators), isGroupedLikeThousands(groups) { return false }
         guard groups.count >= 3, groups.count <= 6 else { return false }
         guard groups.allSatisfy({ $0 <= 6 }) else { return false }
         guard groups.reduce(0, +) == 10 else { return false }
@@ -49,7 +68,7 @@ final class ContactFilterFamilyTests: XCTestCase {
 
     func testTheSweepIsWideEnoughToHoldTheShapeThatWasMissed() {
         let all = Self.shapes()
-        XCTAssertEqual(all.count, 7540, "the sweep covers \(all.count) shapes, not the family it claims to")
+        XCTAssertEqual(all.count, 33_684, "the sweep covers \(all.count) shapes, not the family it claims to")
         XCTAssertTrue(
             all.contains { $0.groups == [3, 3, 4, 2] && $0.separators == ["-", "-", "-"] },
             "the sweep does not contain [3,3,4,2], the shape the previous fix was not checked against"
@@ -57,6 +76,60 @@ final class ContactFilterFamilyTests: XCTestCase {
         XCTAssertTrue(
             all.contains { $0.groups == [4, 3, 4, 2] && $0.separators == ["-", "-", "-"] },
             "the sweep does not contain [4,3,4,2], the one shape in its class that cannot exhibit the bug"
+        )
+        XCTAssertTrue(
+            all.contains { $0.groups == [3, 3, 3, 4] && $0.separators == [",", " ", " "] },
+            "the sweep varies the separator set uniformly per candidate, so the mixed spelling that leaked is outside it"
+        )
+        XCTAssertGreaterThan(
+            Set(all.flatMap(\.separators)).count, 1,
+            "every candidate in the sweep uses one separator throughout, so a separator-dependent rule cannot be reached"
+        )
+        XCTAssertTrue(
+            all.contains { Set($0.separators).count > 1 },
+            "no shape in the sweep mixes two separator spellings, which is the shape the client and the server disagreed on"
+        )
+    }
+
+    func testOneCommaInASpaceSeparatedListIsNotAPhoneNumber() {
+        for accepted in [
+            "Radiator widths are 400, 600 900 1200 mm across the flat here",
+            "Radiator widths are 400 600 900 1200 mm across the flat here",
+            "Radiator widths are 400,600,900,1200 mm across the flat here",
+            "the shelf sizes are 300, 600 900 1200 in the hall",
+            "we counted 100, 200 300 4000 litres over the week"
+        ] {
+            XCTAssertFalse(
+                DescriptionFilter.signals(in: accepted).contains(.phoneNumber),
+                "'\(accepted)' is refused as a phone number and the server accepts it, because the client's separator class does not hold the mark the server's does"
+            )
+        }
+        for refused in [
+            "the plate reads 917,555,0199 next to the valve",
+            "the plate reads 917, 555 0199 next to the valve",
+            "the plate reads 917-555 0199 next to the valve"
+        ] {
+            XCTAssertTrue(
+                DescriptionFilter.signals(in: refused).contains(.phoneNumber),
+                "'\(refused)' is let through, so widening the separator class lost a dialable shape the server catches"
+            )
+        }
+    }
+
+    func testAThousandsGroupedRunIsNotADialableNumberEvenWithAnInternationalPrefix() {
+        for accepted in [
+            "the quote came to +1,234,567,890 lira all in",
+            "the quote came to 1,234,567,890 lira all in",
+            "the reading was +12,345,678,901 units"
+        ] {
+            XCTAssertFalse(
+                DescriptionFilter.signals(in: accepted).contains(.phoneNumber),
+                "'\(accepted)' is refused and the server vetoes it as thousands-grouped before it ever reads the prefix"
+            )
+        }
+        XCTAssertTrue(
+            DescriptionFilter.signals(in: "reach me on +1 917 555 0199 any evening").contains(.phoneNumber),
+            "the thousands veto swallowed an ordinary internationally prefixed number"
         )
     }
 
@@ -68,7 +141,7 @@ final class ContactFilterFamilyTests: XCTestCase {
             let refused = !DescriptionFilter.signals(in: text).contains(.phoneNumber)
                 ? false
                 : true
-            let dialable = Self.isDialableUnderTheServersRule(shape.groups)
+            let dialable = Self.isDialableUnderTheServersRule(shape.groups, shape.separators)
             if refused && !dialable {
                 stricter.append("\(shape.groups) over \(shape.separators): \(digits)")
             }
@@ -81,7 +154,7 @@ final class ContactFilterFamilyTests: XCTestCase {
 
     func testTheClientStillRefusesTheRunsTheServersShapeRuleCallsDialable() {
         var missed: [String] = []
-        for shape in Self.shapes() where Self.isDialableUnderTheServersRule(shape.groups) {
+        for shape in Self.shapes() where Self.isDialableUnderTheServersRule(shape.groups, shape.separators) {
             let digits = Self.run(shape.groups, shape.separators)
             let text = Self.carrier + digits + Self.trailer
             if !DescriptionFilter.signals(in: text).contains(.phoneNumber) {
