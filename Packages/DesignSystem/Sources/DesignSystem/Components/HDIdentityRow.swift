@@ -15,7 +15,7 @@ public struct HDIdentityRow: View {
 
     public var body: some View {
         HStack(spacing: HDSpacing.item) {
-            HDText(identifier, style: HDType.body, color: .hdInk)
+            HDText(identifier, style: HDType.body, color: .hdInk, singleLineMinimumScaleFactor: 0.4)
                 .accessibilityLabel("Identifier, \(identifier)")
 
             Spacer(minLength: HDSpacing.item)
