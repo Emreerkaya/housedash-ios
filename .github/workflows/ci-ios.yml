@@ -31,6 +31,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_COMMENTS: false
 
+  gate-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      - run: just gate-test
+
   ios-build:
     runs-on: macos-latest
     steps:
