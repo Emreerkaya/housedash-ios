@@ -8,7 +8,7 @@ struct B07AFewDetailsScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HDHeader(title: "A few details", onBack: { model.path.removeLast() })
+            HDHeader(title: "A few details", onBack: { model.goBack() })
             HDScreen {
                 if let rejection = model.rejection {
                     IntakeRejectionBanner(rejection: rejection)
@@ -23,33 +23,43 @@ struct B07AFewDetailsScreen: View {
                 photos
             }
             .safeAreaInset(edge: .bottom) {
-                HDActionBar(ctaTitle: "See both ways to fix it") {
+                HDActionBar(
+                    ctaTitle: "See both ways to fix it",
+                    isCTAEnabled: model.canSubmit,
+                    disabledExplanation: "say what it is doing first"
+                ) {
                     model.submit()
                 }
             }
         }
         .background(Color.hdGround.ignoresSafeArea())
+        .hdAnnounce(model.announcement) { model.acknowledgeAnnouncement() }
+    }
+
+    private var addTileCaption: String {
+        model.isCameraAvailable ? "Add from your phone" : "No camera in this build"
     }
 
     private var photos: some View {
         HDItemStack {
-            HDText("Photos", style: HDType.bodyStrong, color: .hdInk)
+            HDGroupHeading("Photos")
             LazyVGrid(columns: columns, spacing: HDSpacing.item) {
-                ForEach(0..<4, id: \.self) { index in
+                ForEach(0..<PhotoFirstFlowModel.photoLimit, id: \.self) { index in
                     if index < model.photos.count {
                         IntakePhotoTile(
                             kind: .captured(timestampLabel: model.photos[index].timestampLabel),
-                            height: 124,
+                            minimumHeight: 124,
                             cornerRadius: 10
                         )
                     } else {
                         IntakePhotoTile(
-                            kind: .add(caption: "Add from your phone"),
-                            height: 124,
+                            kind: .add(caption: addTileCaption),
+                            minimumHeight: 124,
                             cornerRadius: 10
                         ) {
                             model.capturePhoto()
                         }
+                        .disabled(!model.isCameraAvailable)
                     }
                 }
             }

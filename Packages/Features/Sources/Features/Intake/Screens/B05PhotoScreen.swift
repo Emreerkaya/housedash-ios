@@ -7,10 +7,10 @@ struct B05PhotoScreen<TabBar: View>: View {
 
     var body: some View {
         CameraCaptureScreen(
-            chrome: .tabRoot(title: "Show us the problem"),
+            chrome: .tabRoot(title: "Show us the problem", onReview: { model.reviewPhotos() }),
             capturedCount: model.photos.count,
-            onCapture: { model.capturePhoto() },
-            onReview: { model.reviewPhotos() }
+            isCaptureAvailable: model.isCameraAvailable,
+            onCapture: { model.capturePhoto() }
         )
         .safeAreaInset(edge: .bottom) {
             tabBar

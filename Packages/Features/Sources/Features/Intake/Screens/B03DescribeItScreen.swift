@@ -12,7 +12,7 @@ struct B03DescribeItScreen: View {
                 HDText("Step 2 of 2", style: HDType.caption, color: .hdInkFaint)
 
                 if let problem = model.selectedProblem {
-                    IntakeChosenRow(
+                    HDIdentityRow(
                         primary: problem.fullTitle,
                         secondary: "\(problem.category) · \(problem.priceRange) typical",
                         onChange: { model.goBack() }
@@ -40,30 +40,36 @@ struct B03DescribeItScreen: View {
                 photos
             }
             .safeAreaInset(edge: .bottom) {
-                HDActionBar(ctaTitle: "See both ways to fix it") {
+                HDActionBar(
+                    ctaTitle: "See both ways to fix it",
+                    isCTAEnabled: model.canSubmit,
+                    disabledExplanation: "say what it is doing first"
+                ) {
                     model.submit()
                 }
             }
         }
         .background(Color.hdGround.ignoresSafeArea())
+        .hdAnnounce(model.announcement) { model.acknowledgeAnnouncement() }
         .hdTabBarHidden()
     }
 
     private var photos: some View {
         HDItemStack {
-            HDText("Photos", style: HDType.bodyStrong, color: .hdInk)
+            HDGroupHeading("Photos")
             HStack(spacing: HDSpacing.item) {
-                ForEach(0..<3, id: \.self) { index in
+                ForEach(0..<IntakeFlowModel.photoLimit, id: \.self) { index in
                     if index < model.photos.count {
                         IntakePhotoTile(kind: .captured(timestampLabel: model.photos[index].timestampLabel))
                     } else {
                         IntakePhotoTile(kind: .add(caption: "Add")) {
                             model.beginPhotoCapture()
                         }
+                        .disabled(!model.isCameraAvailable)
                     }
                 }
             }
-            if model.photos.count < 3 {
+            if model.photos.count < IntakeFlowModel.photoLimit {
                 HDText(
                     "Add two more so nobody has to ask.",
                     style: HDType.caption,

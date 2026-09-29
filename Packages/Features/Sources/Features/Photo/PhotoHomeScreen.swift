@@ -2,10 +2,11 @@ import SwiftUI
 import DesignSystem
 
 public struct PhotoHomeScreen<TabBar: View>: View {
-    @State private var model = PhotoFirstFlowModel()
+    @State private var model: PhotoFirstFlowModel
     private let tabBar: TabBar
 
-    public init(@ViewBuilder tabBar: () -> TabBar) {
+    public init(camera: PhotoCapture, @ViewBuilder tabBar: () -> TabBar) {
+        _model = State(initialValue: PhotoFirstFlowModel(camera: camera))
         self.tabBar = tabBar()
     }
 
@@ -19,10 +20,14 @@ public struct PhotoHomeScreen<TabBar: View>: View {
                             .navigationBarBackButtonHidden(true)
                     }
                     .overlay(alignment: .top) {
-                        if let description = model.completedDescription {
-                            completionNotice(description)
+                        if let submission = model.completedSubmission {
+                            IntakeCaseReadyNotice(submission: submission, tone: .onContext) {
+                                model.acknowledgeCompletion()
+                            }
+                            .padding(HDSpacing.margin)
                         }
                     }
+                    .hdAnnounce(model.announcement) { model.acknowledgeAnnouncement() }
             }
         }
     }
@@ -33,28 +38,5 @@ public struct PhotoHomeScreen<TabBar: View>: View {
         case .aFewDetails:
             B07AFewDetailsScreen(model: model)
         }
-    }
-
-    private func completionNotice(_ description: Description) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HDText("Case ready: \"\(description.text)\"", style: HDType.bodyStrong, color: .hdOnContext)
-            HDText(
-                "Comparing the DIY guide against nearby people isn't built yet — that's next.",
-                style: HDType.caption,
-                color: .hdOnContext
-            )
-            Button("Got it") {
-                model.acknowledgeCompletion()
-            }
-            .buttonStyle(.plain)
-            .frame(minHeight: 44)
-            .hdTypeStyle(HDType.label)
-            .foregroundStyle(Color.hdOnContext)
-            .accessibilityAddTraits(.isButton)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.hdContext, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .padding(HDSpacing.margin)
     }
 }

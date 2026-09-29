@@ -21,12 +21,17 @@ struct B02PickProblemScreen: View {
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                HDActionBar(ctaTitle: "Next") {
+                HDActionBar(
+                    ctaTitle: "Next",
+                    isCTAEnabled: model.canConfirmSymptom,
+                    disabledExplanation: "pick a problem first"
+                ) {
                     model.confirmSymptomSelection()
                 }
             }
         }
         .background(Color.hdGround.ignoresSafeArea())
+        .hdAnnounce(model.announcement) { model.acknowledgeAnnouncement() }
         .hdTabBarHidden()
     }
 }
