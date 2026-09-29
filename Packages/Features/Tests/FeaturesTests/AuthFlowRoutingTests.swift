@@ -1,5 +1,4 @@
 import XCTest
-import DesignSystem
 @testable import Features
 
 @MainActor

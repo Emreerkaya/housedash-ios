@@ -1,5 +1,3 @@
-import DesignSystem
-
 public enum IdentityLookupResult: Sendable, Equatable {
     case existingAccount(roles: Set<HDRole>)
     case newIdentifier

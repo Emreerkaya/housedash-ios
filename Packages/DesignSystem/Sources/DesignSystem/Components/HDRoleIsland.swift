@@ -1,19 +1,5 @@
 import SwiftUI
 
-public enum HDRole: String, CaseIterable, Identifiable, Sendable {
-    case nester
-    case tasker
-
-    public var id: String { rawValue }
-
-    public var label: String {
-        switch self {
-        case .nester: return "Nester"
-        case .tasker: return "Tasker"
-        }
-    }
-}
-
 struct HDRoleIslandAppearance: Equatable {
     let weight: Font.Weight
 
@@ -31,6 +17,13 @@ struct HDRoleIslandTapExpansion: Shape {
 }
 
 public struct HDRoleIsland: View, HDDrawsAStateMark {
+    public enum Side: String, CaseIterable, Identifiable, Sendable {
+        case leading
+        case trailing
+
+        public var id: String { rawValue }
+    }
+
     public static let size = CGSize(width: 186, height: 38)
     public static let thumbInset: CGFloat = 3
     public static let halfWidth: CGFloat = (size.width - thumbInset * 2) / 2
@@ -42,18 +35,34 @@ public struct HDRoleIsland: View, HDDrawsAStateMark {
         max(0, (minimumTouchTarget - segmentHeight) / 2)
     }
 
-    let selected: HDRole
-    let onSelect: (HDRole) -> Void
+    let leadingTitle: String
+    let trailingTitle: String
+    let selected: Side
+    let onSelect: (Side) -> Void
 
-    public init(selected: HDRole, onSelect: @escaping (HDRole) -> Void) {
+    public init(
+        leading: String,
+        trailing: String,
+        selected: Side,
+        onSelect: @escaping (Side) -> Void
+    ) {
+        self.leadingTitle = leading
+        self.trailingTitle = trailing
         self.selected = selected
         self.onSelect = onSelect
     }
 
+    public func title(of side: Side) -> String {
+        switch side {
+        case .leading: return leadingTitle
+        case .trailing: return trailingTitle
+        }
+    }
+
     public var body: some View {
         HStack(spacing: 0) {
-            segment(.nester)
-            segment(.tasker)
+            segment(.leading)
+            segment(.trailing)
         }
         .padding(Self.thumbInset)
         .frame(minWidth: Self.size.width, minHeight: Self.size.height)
@@ -61,14 +70,15 @@ public struct HDRoleIsland: View, HDDrawsAStateMark {
         .overlay(Capsule().stroke(Color.hdHairline, lineWidth: 1))
     }
 
-    func segment(_ role: HDRole) -> some View {
-        let isSelected = role == selected
+    func segment(_ side: Side) -> some View {
+        let isSelected = side == selected
         let appearance = HDRoleIslandAppearance.appearance(isSelected: isSelected)
+        let title = title(of: side)
 
         return Button {
-            onSelect(role)
+            onSelect(side)
         } label: {
-            HDText(role.label, style: HDType.label, color: isSelected ? .hdOnContext : .hdInkSoft)
+            HDText(title, style: HDType.label, color: isSelected ? .hdOnContext : .hdInkSoft)
                 .fontWeight(appearance.weight)
                 .padding(.horizontal, 6)
                 .frame(minWidth: Self.halfWidth, minHeight: Self.segmentHeight)
@@ -82,7 +92,7 @@ public struct HDRoleIsland: View, HDDrawsAStateMark {
         }
         .buttonStyle(.plain)
         .contentShape(HDRoleIslandTapExpansion(vertical: Self.tapExpansion))
-        .accessibilityLabel(role.label)
+        .accessibilityLabel(title)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }

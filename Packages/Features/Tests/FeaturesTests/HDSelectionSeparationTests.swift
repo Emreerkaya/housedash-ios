@@ -28,7 +28,7 @@ final class HDSelectionSeparationTests: XCTestCase {
     ]
     private static let swiftFilesUnderEachPackagesSources = [
         "DesignSystem": 33,
-        "Features": 39,
+        "Features": 40,
         "Networking": 3
     ]
     private static let typeDeclaration = "\\b(?:struct|class|enum|actor)\\s+([A-Za-z_][A-Za-z0-9_]*)"
@@ -107,8 +107,16 @@ final class HDSelectionSeparationTests: XCTestCase {
             ),
             pair(
                 width: 200,
-                selected: HDRoleIsland(selected: .nester) { _ in },
-                unselected: HDRoleIsland(selected: .tasker) { _ in }
+                selected: HDRoleIsland(
+                    leading: HDRole.nester.label,
+                    trailing: HDRole.tasker.label,
+                    selected: .leading
+                ) { _ in },
+                unselected: HDRoleIsland(
+                    leading: HDRole.nester.label,
+                    trailing: HDRole.tasker.label,
+                    selected: .trailing
+                ) { _ in }
             ),
             pair(
                 width: 402,

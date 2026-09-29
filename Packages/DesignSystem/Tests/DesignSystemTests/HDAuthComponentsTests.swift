@@ -101,6 +101,13 @@ final class HDAuthComponentsTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(changeSize.height, 44)
     }
 
+    private func roleIsland(
+        selected: HDRoleIsland.Side = .leading,
+        onSelect: @escaping (HDRoleIsland.Side) -> Void = { _ in }
+    ) -> HDRoleIsland {
+        HDRoleIsland(leading: "Leading", trailing: "Trailing", selected: selected, onSelect: onSelect)
+    }
+
     func testRoleIslandHalvesAreGeometricallyEqual() {
         XCTAssertEqual(HDRoleIsland.halfWidth, 90)
         XCTAssertEqual(HDRoleIsland.size.width, 186)
@@ -109,13 +116,13 @@ final class HDAuthComponentsTests: XCTestCase {
     }
 
     func testRoleIslandBothSelectionsMeasureTheSameOverallSizeAtDefaultTextSize() {
-        let nesterSelected = measuredSize(HDRoleIsland(selected: .nester) { _ in })
-        let taskerSelected = measuredSize(HDRoleIsland(selected: .tasker) { _ in })
+        let leadingSelected = measuredSize(roleIsland(selected: .leading))
+        let trailingSelected = measuredSize(roleIsland(selected: .trailing))
 
-        XCTAssertEqual(nesterSelected.width, taskerSelected.width, accuracy: 0.5)
-        XCTAssertEqual(nesterSelected.height, taskerSelected.height, accuracy: 0.5)
-        XCTAssertEqual(nesterSelected.width, HDRoleIsland.size.width, accuracy: 0.5)
-        XCTAssertEqual(nesterSelected.height, HDRoleIsland.size.height, accuracy: 0.5)
+        XCTAssertEqual(leadingSelected.width, trailingSelected.width, accuracy: 0.5)
+        XCTAssertEqual(leadingSelected.height, trailingSelected.height, accuracy: 0.5)
+        XCTAssertEqual(leadingSelected.width, HDRoleIsland.size.width, accuracy: 0.5)
+        XCTAssertEqual(leadingSelected.height, HDRoleIsland.size.height, accuracy: 0.5)
     }
 
     func testRoleIslandMeetsTheFortyFourPointTouchTargetOnEachHalf() {
@@ -130,13 +137,13 @@ final class HDAuthComponentsTests: XCTestCase {
     }
 
     func testRoleIslandRenderedHalvesAreEqualWidthAtDefaultTextSize() {
-        let island = HDRoleIsland(selected: .nester) { _ in }
-        let nesterHalf = measuredSize(island.segment(.nester))
-        let taskerHalf = measuredSize(island.segment(.tasker))
+        let island = roleIsland()
+        let leadingHalf = measuredSize(island.segment(.leading))
+        let trailingHalf = measuredSize(island.segment(.trailing))
 
-        XCTAssertEqual(nesterHalf.width, taskerHalf.width, accuracy: 0.5)
-        XCTAssertEqual(nesterHalf.width, HDRoleIsland.halfWidth, accuracy: 0.5)
-        XCTAssertEqual(nesterHalf.height, taskerHalf.height, accuracy: 0.5)
+        XCTAssertEqual(leadingHalf.width, trailingHalf.width, accuracy: 0.5)
+        XCTAssertEqual(leadingHalf.width, HDRoleIsland.halfWidth, accuracy: 0.5)
+        XCTAssertEqual(leadingHalf.height, trailingHalf.height, accuracy: 0.5)
     }
 
     func testRoleIslandSelectedAndUnselectedDifferInWeightNotOnlyColor() {
@@ -149,19 +156,21 @@ final class HDAuthComponentsTests: XCTestCase {
     }
 
     func testRoleIslandExposesSelectionAsAnAccessibilityTraitNotOnlyFill() {
-        var reported: [HDRole] = []
-        let island = HDRoleIsland(selected: .nester) { reported.append($0) }
-        island.onSelect(.tasker)
-        XCTAssertEqual(reported, [.tasker])
+        var reported: [HDRoleIsland.Side] = []
+        let island = roleIsland { reported.append($0) }
+        island.onSelect(.trailing)
+        XCTAssertEqual(reported, [.trailing])
+        XCTAssertEqual(island.title(of: .leading), "Leading")
+        XCTAssertEqual(island.title(of: .trailing), "Trailing")
         XCTAssertTrue(
             String(describing: type(of: island.body)).contains("Button"),
-            "the island body has no Button in it, so a role tap is unreachable from a real tap"
+            "the island body has no Button in it, so a segment tap is unreachable from a real tap"
         )
     }
 
     func testRoleIslandSelectedHalfPaintsAThumbShapeTheUnselectedHalfDoesNot() {
         guard let bitmap = HDBitmap(
-            HDRoleIsland(selected: .nester) { _ in }
+            roleIsland()
                 .frame(width: HDRoleIsland.size.width, height: HDRoleIsland.size.height)
                 .padding(4)
                 .background(Color.hdSurface),
@@ -193,17 +202,17 @@ final class HDAuthComponentsTests: XCTestCase {
 
         XCTAssertTrue(
             regionContainsContext(columns: leftColumns, rows: rows),
-            "selected (Nester) half should be painted with the context-filled thumb"
+            "selected (leading) half should be painted with the context-filled thumb"
         )
         XCTAssertFalse(
             regionContainsContext(columns: rightColumns, rows: rows),
-            "unselected (Tasker) half must not carry the thumb fill — the difference must be more than colour"
+            "unselected (trailing) half must not carry the thumb fill — the difference must be more than colour"
         )
     }
 
     func testRoleIslandGrowsInsteadOfClippingAtLargestAccessibilitySize() {
-        let normal = measuredSize(HDRoleIsland(selected: .nester) { _ in }, dynamicTypeSize: .large)
-        let huge = measuredSize(HDRoleIsland(selected: .nester) { _ in }, dynamicTypeSize: .accessibility5)
+        let normal = measuredSize(roleIsland(), dynamicTypeSize: .large)
+        let huge = measuredSize(roleIsland(), dynamicTypeSize: .accessibility5)
         XCTAssertGreaterThan(huge.height, normal.height)
         XCTAssertGreaterThanOrEqual(huge.width, normal.width)
     }

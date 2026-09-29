@@ -8,13 +8,12 @@ let package = Package(
         .library(name: "Features", targets: ["Features"])
     ],
     dependencies: [
-        .package(path: "../DesignSystem"),
-        .package(path: "../Networking")
+        .package(path: "../DesignSystem")
     ],
     targets: [
         .target(
             name: "Features",
-            dependencies: ["DesignSystem", "Networking"],
+            dependencies: ["DesignSystem"],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .testTarget(
