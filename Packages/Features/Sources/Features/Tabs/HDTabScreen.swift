@@ -1,10 +1,11 @@
 import SwiftUI
+import DesignSystem
 
 public struct HDTabScreen<Content: View>: View {
-    private let tab: HDTab
+    private let tab: HDNesterTab
     private let content: Content
 
-    public init(tab: HDTab, @ViewBuilder content: () -> Content) {
+    public init(tab: HDNesterTab, @ViewBuilder content: () -> Content) {
         self.tab = tab
         self.content = content()
     }

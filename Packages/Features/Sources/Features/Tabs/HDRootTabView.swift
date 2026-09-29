@@ -2,27 +2,24 @@ import SwiftUI
 import DesignSystem
 
 public struct HDRootTabView: View {
-    @State private var selection: HDTab = .fix
+    @State private var selection: HDNesterTab = .fix
 
     public init() {}
 
     public var body: some View {
-        TabView(selection: $selection) {
-            ForEach(HDTab.allCases) { tab in
-                NavigationStack {
-                    rootScreen(for: tab)
-                }
-                .tabItem {
-                    Label(tab.title, systemImage: tab.systemImage)
-                }
-                .tag(tab)
+        NavigationStack {
+            rootScreen(for: selection)
+        }
+        .safeAreaInset(edge: .bottom) {
+            HDTabBarNester(active: selection) { tab in
+                selection = tab
             }
         }
-        .tint(Color.hdAccentHire)
+        .tint(Color.hdInk)
     }
 
     @ViewBuilder
-    private func rootScreen(for tab: HDTab) -> some View {
+    private func rootScreen(for tab: HDNesterTab) -> some View {
         switch tab {
         case .fix:
             FixHomeScreen()
@@ -30,7 +27,7 @@ public struct HDRootTabView: View {
             JobsHomeScreen()
         case .photo:
             PhotoHomeScreen()
-        case .toolbox:
+        case .diy:
             ToolboxHomeScreen()
         case .profile:
             ProfileHomeScreen()
