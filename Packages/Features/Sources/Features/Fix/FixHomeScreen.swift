@@ -4,8 +4,8 @@ import DesignSystem
 public struct FixHomeScreen: View {
     @State private var model: IntakeFlowModel
 
-    public init(problemCatalogue: ProblemCatalogue) {
-        _model = State(initialValue: IntakeFlowModel(catalogue: problemCatalogue))
+    public init(problemCatalogue: ProblemCatalogue, camera: PhotoCapture) {
+        _model = State(initialValue: IntakeFlowModel(catalogue: problemCatalogue, camera: camera))
     }
 
     public var body: some View {

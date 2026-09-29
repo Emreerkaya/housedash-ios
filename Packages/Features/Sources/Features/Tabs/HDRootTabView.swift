@@ -5,15 +5,17 @@ public struct HDRootTabView: View {
     @State private var selection: HDNesterTab = .fix
     @State private var isTabBarHidden = false
     private let problemCatalogue: ProblemCatalogue
+    private let camera: PhotoCapture
 
-    public init(problemCatalogue: ProblemCatalogue) {
+    public init(problemCatalogue: ProblemCatalogue, camera: PhotoCapture) {
         self.problemCatalogue = problemCatalogue
+        self.camera = camera
     }
 
     public var body: some View {
         Group {
             if selection == .photo {
-                PhotoHomeScreen(tabBar: { tabBar })
+                PhotoHomeScreen(camera: camera, tabBar: { tabBar })
             } else {
                 rootScreen(for: selection)
                     .onHDTabBarHiddenChange { isTabBarHidden = $0 }
@@ -31,7 +33,7 @@ public struct HDRootTabView: View {
     private func rootScreen(for tab: HDNesterTab) -> some View {
         switch tab {
         case .fix:
-            FixHomeScreen(problemCatalogue: problemCatalogue)
+            FixHomeScreen(problemCatalogue: problemCatalogue, camera: camera)
         case .jobs:
             JobsHomeScreen()
         case .photo:
