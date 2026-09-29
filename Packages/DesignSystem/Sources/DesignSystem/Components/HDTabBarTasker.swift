@@ -28,29 +28,26 @@ public enum HDTaskerTab: String, CaseIterable, Identifiable, Sendable {
 }
 
 public struct HDTabBarTasker: View {
-    public static let height: CGFloat = 83
-
     public let active: HDTaskerTab
+    public let onSelect: (HDTaskerTab) -> Void
 
-    public init(active: HDTaskerTab) {
+    public init(active: HDTaskerTab, onSelect: @escaping (HDTaskerTab) -> Void) {
         self.active = active
+        self.onSelect = onSelect
     }
 
     public var body: some View {
-        HStack(spacing: 0) {
+        HDTabBarChrome {
             ForEach(HDTaskerTab.allCases) { tab in
-                HDTabBarTaskerButton(tab: tab, isActive: tab == active)
-                    .frame(maxWidth: .infinity)
+                Button {
+                    onSelect(tab)
+                } label: {
+                    HDTabBarTaskerButton(tab: tab, isActive: tab == active)
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(tab == active ? .isSelected : [])
+                .frame(maxWidth: .infinity)
             }
-        }
-        .padding(.top, 10)
-        .padding(.bottom, 6)
-        .frame(maxWidth: .infinity, minHeight: Self.height, alignment: .top)
-        .background(Color.hdSurface)
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(Color.hdHairline)
-                .frame(height: 1)
         }
     }
 }
@@ -63,7 +60,9 @@ private struct HDTabBarTaskerButton: View {
         let appearance = HDTabBarButtonAppearance.appearance(isActive: isActive)
         VStack(spacing: 5) {
             Image(systemName: tab.systemImage)
-                .font(.system(size: 24))
+                .resizable()
+                .scaledToFit()
+                .frame(width: HDTabBarChromeMetrics.iconSize, height: HDTabBarChromeMetrics.iconSize)
                 .foregroundStyle(Color.hdInk)
                 .opacity(appearance.iconOpacity)
             Text(tab.label)
