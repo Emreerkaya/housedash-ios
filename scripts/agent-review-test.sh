@@ -9,6 +9,10 @@ trap 'rm -rf "$stub_dir"' EXIT
 cat > "${stub_dir}/gh" <<'STUB'
 #!/usr/bin/env bash
 if [ "${1:-}" = "pr" ] && [ "${2:-}" = "diff" ]; then
+    if [ -n "${STUB_FAIL_DIFF-}" ]; then
+        printf 'gh: could not determine the changed files\n' >&2
+        exit 1
+    fi
     printf '%s' "${STUB_CHANGED-}"
     [ -n "${STUB_CHANGED-}" ] && printf '\n'
     exit 0
@@ -110,9 +114,51 @@ check 'a trailer that is not the last line does not count' 1 "$untouched" \
     "$(set_of "$(review accessibility clean "$sha" true OWNER 'and one more thought afterwards')" "$(review architecture clean)" "$(review testing clean)")" \
     'missing: no accessibility review'
 
+check 'a trailer naming only a sha prefix does not count' 1 "$untouched" \
+    "$(set_of "$(review accessibility clean 1111111)" "$(review architecture clean)" "$(review testing clean)")" \
+    'missing: no accessibility review'
+
+check 'a path git quotes still requires the security review' 1 \
+    '"Packages/Features/Sources/Features/Intake/Domain/Gr\303\266\303\237e.swift"' \
+    "$(set_of "$(review accessibility clean)" "$(review architecture clean)" "$(review testing clean)")" \
+    'missing: no security review'
+
+check 'a diff of the gate itself requires the security review' 1 \
+    'scripts/agent-review.sh' \
+    "$(set_of "$(review accessibility clean)" "$(review architecture clean)" "$(review testing clean)")" \
+    'missing: no security review'
+
+check 'a diff of the workflows requires the security review' 1 \
+    '.github/workflows/process-review.yml' \
+    "$(set_of "$(review accessibility clean)" "$(review architecture clean)" "$(review testing clean)")" \
+    'missing: no security review'
+
+check 'a review naming a dimension this diff does not require cannot block' 0 "$untouched" \
+    "$(set_of "$(review accessibility clean)" "$(review architecture clean)" "$(review testing clean)" "$(review invariants blocked)")" \
+    'is not one this diff requires'
+
 check 'an empty diff refuses to pass vacuously' 2 "" "$all_five" 'refusing to pass vacuously'
 
+check 'a body with CRLF line endings still counts, as the web UI sends them' 0 "$untouched" \
+    "$(printf '[%s,%s,%s]' \
+        "$(printf '{"state":"COMMENTED","authorAssociation":"OWNER","authorCanPushToRepository":true,"author":{"login":"someone","__typename":"User"},"body":"Prose.\\r\\n\\r\\n<!-- review-sha: %s dimension: accessibility verdict: clean -->\\r\\n"}' "$sha")" \
+        "$(review architecture clean)" "$(review testing clean)")" \
+    'none blocked'
+
 check 'no reviews at all blocks' 1 "$untouched" '[]' 'missing: no accessibility review'
+
+out=$(PATH="${stub_dir}:${PATH}" \
+    STUB_CHANGED="$untouched" STUB_REVIEWS="$all_five" STUB_THREADS='[]' STUB_FAIL_DIFF=1 \
+    PR_NUMBER=1 HEAD_SHA="$sha" GITHUB_REPOSITORY=Emreerkaya/housedash-ios \
+    bash "$gate" 2>&1)
+got=$?
+if [ "$got" -eq 0 ] || printf '%s' "$out" | grep -q 'every required dimension'; then
+    printf 'FAIL a gh that cannot list the changed files must not pass the gate: exit %s\n%s\n\n' "$got" "$out" >&2
+    fail=$((fail + 1))
+else
+    printf 'ok a gh that cannot list the changed files must not pass the gate\n'
+    pass=$((pass + 1))
+fi
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
