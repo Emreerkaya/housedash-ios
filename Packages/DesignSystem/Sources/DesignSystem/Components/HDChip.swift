@@ -20,7 +20,7 @@ public struct HDChip: View {
 
     public var body: some View {
         Button(action: action) {
-            HDText(label, style: HDType.label, color: textColor)
+            HDText(label, style: HDType.label, color: textColor, singleLineMinimumScaleFactor: 0.6)
                 .padding(.horizontal, 18)
                 .frame(minHeight: Self.minimumHeight)
                 .background(fill, in: Capsule())
