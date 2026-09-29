@@ -11,6 +11,8 @@ import DesignSystem
 final class IntakeScreensRenderTests: XCTestCase {
     private static let contentWidth: CGFloat = 353
     private static let deviceWidth: CGFloat = 402
+    private static let supportedWidths: [CGFloat] = [402, 375, 320]
+    private static let pointsWCAGAsksForATouchTarget: CGFloat = 44
 
     private func measuredSize<V: View>(
         _ view: V,
@@ -274,16 +276,61 @@ final class IntakeScreensRenderTests: XCTestCase {
     }
 
     func testTheChosenRowStacksRatherThanSqueezingItsTitleIntoAColumnTooNarrowForOneWord() {
-        let stacked = measuredSize(chosenRow(), width: Self.contentWidth, dynamicTypeSize: .accessibility5)
-        let available = Self.contentWidth - 2 * 18
-        for word in ["Dripping", "faucet"] {
-            let needed = idealWidth(word, style: HDType.bodyStrong, dynamicTypeSize: .accessibility5)
+        XCTAssertTrue(
+            HDIdentityRow.stacks(at: .accessibility5),
+            "the chosen row does not stack at accessibility5, so the width computed below is not the width it gives its title"
+        )
+        for width in Self.supportedWidths {
+            let stacked = measuredSize(chosenRow(), width: width, dynamicTypeSize: .accessibility5)
+            let flat = measuredSize(chosenRow(), width: width, dynamicTypeSize: .large)
+            XCTAssertGreaterThan(
+                stacked.height, flat.height,
+                "at \(width)pt the row is \(stacked.height)pt at accessibility5 and \(flat.height)pt at the default size"
+            )
+            let available = width - 2 * HDIdentityRow.horizontalPadding
+            for word in ["Dripping", "faucet"] {
+                let needed = idealWidth(word, style: HDType.bodyStrong, dynamicTypeSize: .accessibility5)
+                XCTAssertGreaterThanOrEqual(
+                    available, needed,
+                    "'\(word)' needs \(needed)pt and the stacked row offers \(available)pt at \(width)pt, so it breaks mid-word"
+                )
+            }
+        }
+    }
+
+    func testThePickRowGivesItsTitleTheWholeRowAtEveryWidthItShipsOn() {
+        XCTAssertTrue(
+            IntakePickRow.stacks(at: .accessibility5),
+            "the pick row keeps its price beside its title at accessibility5, so the width below is not the width the title gets"
+        )
+        XCTAssertFalse(
+            IntakePickRow.stacks(at: .large),
+            "the pick row stacks at the default size too, which is not what it is drawn as"
+        )
+        let longestWord = ["constantly", "Dripping", "Worse"]
+            .map { (word: $0, needed: idealWidth($0, style: HDType.bodyStrong, dynamicTypeSize: .accessibility5)) }
+            .max { $0.needed < $1.needed }
+        guard let longestWord else { return XCTFail("no word to measure") }
+        for width in Self.supportedWidths {
+            let available = width - 2 * IntakePickRow.horizontalPadding
             XCTAssertGreaterThanOrEqual(
-                available, needed,
-                "'\(word)' needs \(needed)pt and the stacked row offers \(available)pt, so it breaks mid-word"
+                available, longestWord.needed,
+                "'\(longestWord.word)' needs \(longestWord.needed)pt at accessibility5 and a \(width)pt row offers its title \(available)pt, so it breaks mid-word"
             )
         }
-        XCTAssertGreaterThan(stacked.height, HDIdentityRow.minimumHeight)
+    }
+
+    func testThePickRowsPriceIsNoLongerWhatBuysItsTitleALine() {
+        let price = idealWidth("$90\u{2013}140", style: HDType.factRow, dynamicTypeSize: .accessibility5)
+        for width in Self.supportedWidths {
+            let available = width - 2 * IntakePickRow.horizontalPadding
+            let sideBySide = available - price - HDSpacing.item
+            let needed = idealWidth("constantly", style: HDType.bodyStrong, dynamicTypeSize: .accessibility5)
+            XCTAssertLessThan(
+                sideBySide, needed,
+                "at \(width)pt the title would still have \(sideBySide)pt beside a \(price)pt price, so stacking is not what is keeping 'constantly' whole and this test is not measuring the fix"
+            )
+        }
     }
 
     func testEveryGroupHeadingGoesThroughTheOneComponentThatCarriesTheHeaderTrait() {
@@ -292,7 +339,10 @@ final class IntakeScreensRenderTests: XCTestCase {
             String(describing: type(of: screen.railHeading("Common in a kitchen"))).contains("HDGroupHeading"),
             "a rail heading drawn as bare text is invisible to the heading rotor"
         )
-        XCTAssertTrue(String(describing: HDGroupHeading.self).contains("HDGroupHeading"))
+        XCTAssertEqual(
+            HDToken.tokens(in: .text).isEmpty, false,
+            "the palette reports no text tokens, so the heading colour below is not a colour"
+        )
     }
 
     func testTheFlashAffordanceIsNoLongerAControlAtAll() {
@@ -329,23 +379,39 @@ final class IntakeScreensRenderTests: XCTestCase {
     }
 
     func testChangeAffordanceOnTheChosenRowMeetsTheFortyFourPointTouchTarget() {
-        let size = measuredSize(chosenRow(), width: Self.contentWidth)
-        XCTAssertGreaterThanOrEqual(size.height, HDIdentityRow.minimumHeight)
+        let button = measuredSize(chosenRow().changeButton, width: Self.contentWidth)
+        XCTAssertGreaterThanOrEqual(
+            button.height, Self.pointsWCAGAsksForATouchTarget,
+            "the Change button is \(button.height)pt tall on its own, whatever the row around it measures"
+        )
+        XCTAssertGreaterThanOrEqual(
+            button.width, Self.pointsWCAGAsksForATouchTarget,
+            "the Change button is \(button.width)pt wide on its own"
+        )
     }
 
-    func testAddPhotoTileMeetsTheFortyFourPointTouchTarget() {
-        let size = measuredSize(IntakePhotoTile(kind: .add(caption: "Add"), action: {}), width: 99)
-        XCTAssertGreaterThanOrEqual(size.height, 44)
-    }
-
-    func testCardMeetsTheFortyFourPointTouchTargetVertically() {
-        let size = measuredSize(IntakeCard(problem: FakeProblemCatalogue.drippingTap, action: {}))
-        XCTAssertGreaterThanOrEqual(size.height, 44)
-    }
-
-    func testPickRowMeetsTheFortyFourPointTouchTarget() {
-        let size = measuredSize(IntakePickRow(symptom: FakeProblemCatalogue.drippingTapSymptoms[0], action: {}))
-        XCTAssertGreaterThanOrEqual(size.height, 44)
+    func testEveryTappableRowClearsFortyFourPointsAtTheSmallestContentSize() {
+        let tiles: [(String, CGSize)] = [
+            ("the add-photo tile", measuredSize(
+                IntakePhotoTile(kind: .add(caption: "Add"), action: {}),
+                width: 99,
+                dynamicTypeSize: .xSmall
+            )),
+            ("a rail card", measuredSize(
+                IntakeCard(problem: FakeProblemCatalogue.drippingTap, action: {}),
+                dynamicTypeSize: .xSmall
+            )),
+            ("a pick row", measuredSize(
+                IntakePickRow(symptom: FakeProblemCatalogue.drippingTapSymptoms[0], action: {}),
+                dynamicTypeSize: .xSmall
+            ))
+        ]
+        for (name, size) in tiles {
+            XCTAssertGreaterThanOrEqual(
+                size.height, Self.pointsWCAGAsksForATouchTarget,
+                "\(name) is \(size.height)pt tall at the smallest content size, where nothing inside it is padding the target out"
+            )
+        }
     }
 
     private func cameraScreen() -> CameraCaptureScreen {

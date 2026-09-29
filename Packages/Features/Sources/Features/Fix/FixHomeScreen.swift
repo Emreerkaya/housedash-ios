@@ -9,15 +9,13 @@ public struct FixHomeScreen: View {
     }
 
     public var body: some View {
-        HDTabScreen(tab: .fix) {
-            NavigationStack(path: $model.path) {
-                B01FixScreen(model: model)
-                    .navigationBarBackButtonHidden(true)
-                    .navigationDestination(for: IntakeRoute.self) { route in
-                        destination(for: route)
-                            .navigationBarBackButtonHidden(true)
-                    }
-            }
+        NavigationStack(path: $model.path) {
+            B01FixScreen(model: model)
+                .navigationBarBackButtonHidden(true)
+                .navigationDestination(for: IntakeRoute.self) { route in
+                    destination(for: route)
+                        .navigationBarBackButtonHidden(true)
+                }
         }
     }
 
