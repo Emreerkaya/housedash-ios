@@ -104,13 +104,13 @@ done
 
 while read -r dimension verdict; do
     [ -z "${dimension:-}" ] && continue
-    if ! printf '%s\n' "${required[@]}" | grep -qx "$dimension"; then
-        printf 'note: a review at %s names dimension %s, which is not one this diff requires (%s); it is neither counted nor allowed to block\n' \
-            "${head_sha:0:8}" "$dimension" "${required[*]}" >&2
-        continue
-    fi
     case "$verdict" in
-        clean) ;;
+        clean)
+            if ! printf '%s\n' "${required[@]}" | grep -qx "$dimension"; then
+                printf 'note: a clean %s review at %s names a dimension this diff does not require (%s) and is not counted\n' \
+                    "$dimension" "${head_sha:0:8}" "${required[*]}" >&2
+            fi
+            ;;
         blocked)
             printf 'blocked: %s review at %s reports verdict blocked\n' "$dimension" "${head_sha:0:8}" >&2
             fail=1
