@@ -27,19 +27,42 @@ public struct ProblemRail: Sendable, Equatable, Identifiable {
 }
 
 public struct SymptomOption: Sendable, Equatable, Identifiable, Hashable {
+    public enum Kind: Sendable, Equatable, Hashable {
+        case symptom(priceRange: String?)
+        case ownWords
+    }
+
     public let id: String
     public let primary: String
     public let secondary: String
-    public let priceRange: String?
+    public let kind: Kind
 
     public init(id: String, primary: String, secondary: String, priceRange: String?) {
         self.id = id
         self.primary = primary
         self.secondary = secondary
-        self.priceRange = priceRange
+        self.kind = .symptom(priceRange: priceRange)
     }
 
-    public var isEscapeHatch: Bool { priceRange == nil }
+    private init(id: String, primary: String, secondary: String, kind: Kind) {
+        self.id = id
+        self.primary = primary
+        self.secondary = secondary
+        self.kind = kind
+    }
+
+    public static func ownWords(id: String, primary: String, secondary: String) -> SymptomOption {
+        SymptomOption(id: id, primary: primary, secondary: secondary, kind: .ownWords)
+    }
+
+    public var priceRange: String? {
+        switch kind {
+        case .symptom(let priceRange): priceRange
+        case .ownWords: nil
+        }
+    }
+
+    public var isEscapeHatch: Bool { kind == .ownWords }
 }
 
 public enum ProblemCatalogueError: Error, Sendable, Equatable {

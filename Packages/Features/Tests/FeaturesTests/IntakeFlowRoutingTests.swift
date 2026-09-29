@@ -259,4 +259,127 @@ final class IntakeFlowRoutingTests: XCTestCase {
         XCTAssertEqual(model.descriptionText, "")
         XCTAssertTrue(model.photos.isEmpty)
     }
+
+    func testAPhoneNumberTypedIntoWhereIsRefusedTheSameWayOneTypedIntoTheDescriptionIs() async {
+        let contactDetail = "917-555-0199 ask for Bob, or bob@example.com"
+
+        let (inTheDescription, _) = makeModel()
+        await reachDescribeIt(inTheDescription)
+        inTheDescription.descriptionText = contactDetail
+        inTheDescription.submit()
+
+        let (inWhere, _) = makeModel()
+        await reachDescribeIt(inWhere)
+        inWhere.descriptionText = "The tap drips from the base."
+        inWhere.locationText = contactDetail
+        inWhere.submit()
+
+        XCTAssertEqual(
+            inWhere.rejection?.signals, inTheDescription.rejection?.signals,
+            "the same string reports \(String(describing: inWhere.rejection?.signals)) in Where and \(String(describing: inTheDescription.rejection?.signals)) in the description"
+        )
+        XCTAssertNil(
+            inWhere.completedSubmission,
+            "Where carried \(String(describing: inWhere.completedSubmission?.location)) into the submitted case unfiltered"
+        )
+        XCTAssertEqual(inWhere.rejection?.fieldLabels, [IntakeFlowModel.locationFieldLabel])
+        XCTAssertEqual(inTheDescription.rejection?.fieldLabels, [IntakeFlowModel.descriptionFieldLabel])
+    }
+
+    func testWhereStillTakesAPlaceNameWithDigitsInIt() async {
+        let (model, _) = makeModel()
+        await reachDescribeIt(model)
+        model.descriptionText = "The tap drips from the base."
+        for place in ["Greenwich Village", "Flat 4, 221B Baker Street", "350 East 62nd Street", "Apartment 12, second floor"] {
+            model.locationText = place
+            model.submit()
+            XCTAssertNil(model.rejection, "'\(place)' is refused, so the filter is now refusing addresses")
+            XCTAssertEqual(model.completedSubmission?.location, place)
+            model.acknowledgeCompletion()
+            await reachDescribeIt(model)
+            model.descriptionText = "The tap drips from the base."
+        }
+    }
+
+    func testASubmissionCarriesOnlyPhotosTakenForTheProblemItNames() async {
+        let (model, _) = makeModel()
+        await model.selectProblem(FakeProblemCatalogue.drippingTap)
+        model.selectSymptomForReview(FakeProblemCatalogue.drippingTapSymptoms[0])
+        model.confirmSymptomSelection()
+        model.capturePhoto()
+        XCTAssertEqual(model.photos.map(\.id), ["photo-1"], "the camera fixture took no photo, so this test is vacuous")
+        model.goBack()
+
+        model.selectSymptomForReview(FakeProblemCatalogue.symptomWithNoPriceFromTheCatalogue)
+        model.confirmSymptomSelection()
+        model.descriptionText = "The tap drips from the base."
+        model.submit()
+
+        XCTAssertEqual(
+            model.completedSubmission?.photos, [],
+            "the case names \(String(describing: model.completedSubmission?.problem?.title)) and carries \(String(describing: model.completedSubmission?.photos.map(\.id))), taken against a different symptom"
+        )
+    }
+
+    func testASubmissionKeepsThePhotosTakenForTheSymptomItStillNames() async {
+        let (model, _) = makeModel()
+        await model.selectProblem(FakeProblemCatalogue.drippingTap)
+        model.selectSymptomForReview(FakeProblemCatalogue.drippingTapSymptoms[0])
+        model.confirmSymptomSelection()
+        model.capturePhoto()
+        model.goBack()
+        model.selectSymptomForReview(FakeProblemCatalogue.drippingTapSymptoms[0])
+        model.confirmSymptomSelection()
+        model.descriptionText = "The tap drips from the base."
+        model.submit()
+
+        XCTAssertEqual(
+            model.completedSubmission?.photos.map(\.id), ["photo-1"],
+            "going back and choosing the same symptom again threw away a photo that still belongs to it"
+        )
+    }
+
+    func testASymptomTheCatalogueGaveNoPriceForIsStillASymptom() async {
+        let (model, _) = makeModel()
+        await model.selectProblem(FakeProblemCatalogue.drippingTap)
+        let symptom = FakeProblemCatalogue.symptomWithNoPriceFromTheCatalogue
+        XCTAssertNil(symptom.priceRange, "this symptom has a price, so the case it stands for cannot arise")
+        XCTAssertFalse(symptom.isEscapeHatch, "a symptom with no price from the catalogue is being read as the escape hatch")
+
+        model.selectSymptomForReview(symptom)
+        model.confirmSymptomSelection()
+        XCTAssertEqual(
+            model.path.last, .describeIt(symptom),
+            "a missing price sent an ordinary symptom to \(String(describing: model.path.last)) instead of its own screen"
+        )
+
+        model.capturePhoto()
+        model.descriptionText = "The tap drips from the base."
+        model.submit()
+        XCTAssertEqual(
+            model.completedSubmission?.problem, FakeProblemCatalogue.drippingTap,
+            "a missing price detached the case from its catalogue problem"
+        )
+        XCTAssertEqual(
+            model.completedSubmission?.photos.map(\.id), ["photo-1"],
+            "a missing price threw away the captured photo"
+        )
+    }
+
+    func testTheEscapeHatchIsTheOnlyThingThatSubmitsWithNoProblem() async {
+        let (model, _) = makeModel()
+        await model.selectProblem(FakeProblemCatalogue.drippingTap)
+        model.selectSymptomForReview(FakeProblemCatalogue.escapeHatch)
+        model.confirmSymptomSelection()
+        XCTAssertEqual(model.path.last, .somethingElse)
+        model.descriptionText = "The radiator never gets hot."
+        model.submit()
+        XCTAssertNil(model.completedSubmission?.problem)
+    }
+
+    private func reachDescribeIt(_ model: IntakeFlowModel) async {
+        await model.selectProblem(FakeProblemCatalogue.drippingTap)
+        model.selectSymptomForReview(FakeProblemCatalogue.drippingTapSymptoms[0])
+        model.confirmSymptomSelection()
+    }
 }

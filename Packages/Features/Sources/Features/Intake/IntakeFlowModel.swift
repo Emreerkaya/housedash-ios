@@ -16,10 +16,24 @@ public struct IntakeSubmission: Sendable, Equatable {
     }
 }
 
+enum DescribedRoute: Equatable {
+    case symptom(ProblemSummary, SymptomOption)
+    case ownWords
+
+    var problem: ProblemSummary? {
+        switch self {
+        case .symptom(let problem, _): problem
+        case .ownWords: nil
+        }
+    }
+}
+
 @MainActor
 @Observable
 public final class IntakeFlowModel {
     public static let photoLimit = 3
+    public static let descriptionFieldLabel = "What is it doing?"
+    public static let locationFieldLabel = "Where"
 
     public let rooms: [HDRoom] = HDRoom.allCases
     public var selectedRoom: HDRoom = .kitchen
@@ -40,7 +54,7 @@ public final class IntakeFlowModel {
     public private(set) var completedSubmission: IntakeSubmission?
     public private(set) var announcement: String?
 
-    private var describedSymptom: SymptomOption?
+    private var describedRoute: DescribedRoute?
     private var captureCount = 0
     private let catalogue: ProblemCatalogue
     private let camera: PhotoCapture
@@ -86,17 +100,29 @@ public final class IntakeFlowModel {
     public func confirmSymptomSelection() {
         guard let symptom = selectedSymptom else { return }
         rejection = nil
-        if symptom != describedSymptom {
+        let route = route(for: symptom)
+        if route != describedRoute {
             descriptionText = ""
             locationText = ""
-            describedSymptom = symptom
-        }
-        if symptom.isEscapeHatch {
             photos = []
             captureCount = 0
+            describedRoute = route
+        }
+        switch route {
+        case .ownWords:
             path.append(.somethingElse)
-        } else {
+        case .symptom(_, let symptom):
             path.append(.describeIt(symptom))
+        }
+    }
+
+    private func route(for symptom: SymptomOption) -> DescribedRoute {
+        switch symptom.kind {
+        case .ownWords:
+            return .ownWords
+        case .symptom:
+            guard let problem = selectedProblem else { return .ownWords }
+            return .symptom(problem, symptom)
         }
     }
 
@@ -126,22 +152,33 @@ public final class IntakeFlowModel {
     public func submit() {
         rejection = nil
         guard canSubmit else { return }
-        switch Description.of(descriptionText) {
-        case .success(let description):
-            isSubmitting = true
-            defer { isSubmitting = false }
-            completedSubmission = IntakeSubmission(
-                description: description,
-                problem: describedSymptom?.isEscapeHatch == true ? nil : selectedProblem,
-                location: locationText.trimmingCharacters(in: .whitespacesAndNewlines),
-                photos: photos
+        let location = locationText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let refusals = [
+            (Self.descriptionFieldLabel, DescriptionFilter.signals(in: descriptionText)),
+            (Self.locationFieldLabel, DescriptionFilter.signals(in: location))
+        ].filter { !$0.1.isEmpty }
+        guard refusals.isEmpty else {
+            let rejection = DescriptionRejection(
+                signals: ContactSignalKind.allCases.filter { kind in
+                    refusals.contains { $0.1.contains(kind) }
+                },
+                fieldLabels: refusals.map(\.0)
             )
-            announcement = "Case ready"
-            path = []
-        case .failure(.rejected(let rejection)):
             self.rejection = rejection
             announcement = rejection.summary
+            return
         }
+        guard case .success(let description) = Description.of(descriptionText) else { return }
+        isSubmitting = true
+        defer { isSubmitting = false }
+        completedSubmission = IntakeSubmission(
+            description: description,
+            problem: describedRoute?.problem,
+            location: location,
+            photos: photos
+        )
+        announcement = "Case ready"
+        path = []
     }
 
     public func acknowledgeCompletion() {
@@ -149,7 +186,7 @@ public final class IntakeFlowModel {
         announcement = nil
         selectedProblem = nil
         selectedSymptom = nil
-        describedSymptom = nil
+        describedRoute = nil
         symptoms = []
         descriptionText = ""
         locationText = ""
