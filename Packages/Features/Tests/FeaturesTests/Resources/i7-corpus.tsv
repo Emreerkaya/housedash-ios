@@ -52,23 +52,23 @@ ACCEPT	ACCEPT		radiator widths are\n1400\n1600\n1800	closed by the three-digit r
 ACCEPT	ACCEPT		1400 1600 1800 mm	closed by the three-digit rule
 ACCEPT	ACCEPT		invoices 4455 4456 4457	closed by the three-digit rule
 ACCEPT	ACCEPT		2026-09-24, 350 Example Street	why comma is not in PHONE_SEPARATOR
-ACCEPT	ACCEPT		rated 10,000, 12,000 or 14,000 BTU	the [2,3,2,3] thousands-list regression; closed by the exchange-and-line rule
-ACCEPT	ACCEPT		quotes were 1,500, 2,300, 3,100	the [2,3,2,3] thousands-list regression; closed by the exchange-and-line rule
-ACCEPT	ACCEPT		12,000, 18,000	the [2,3,2,3] thousands-list regression; closed by the exchange-and-line rule
-ACCEPT	ACCEPT		1,000, 2,500, 10,000	the [2,3,2,3] thousands-list regression; closed by the exchange-and-line rule
-ACCEPT	ACCEPT		1,500; 2,300; 3,100	the [2,3,2,3] thousands-list regression; closed by the exchange-and-line rule
-ACCEPT	REJECT	PhoneNumber	100, 150, 2000 mm	a [3,3,4] quantity list, not the [2,3,2,3] thousands-list class it was filed under; ACCEPT at 458c134
-ACCEPT	ACCEPT		1,200, 1,800, 2,400	the [2,3,2,3] thousands-list regression; closed by the exchange-and-line rule
-ACCEPT	ACCEPT		12,000, 18,000, 24,000	the [2,3,2,3] thousands-list regression; closed by the exchange-and-line rule
-ACCEPT	ACCEPT		Radiator widths:\n300\n450\n600	a [3,3,3] quantity list, not the [2,3,2,3] thousands-list class it was filed under; closed by the exchange-and-line rule
-ACCEPT	ACCEPT		Radiator sizes are 600 1200 1800 mm across the flat here	three-digit metric run; was pinned as a known cost, closed by the exchange-and-line rule
-ACCEPT	ACCEPT		Worktop depths 300 600 900 mm and the sink is undermount	three-digit metric run; was pinned as a known cost, closed by the exchange-and-line rule
-ACCEPT	ACCEPT		Tile sizes 200 300 400 600 needed for the bathroom floor	three-digit metric run; was pinned as a known cost, closed by the exchange-and-line rule
-ACCEPT	ACCEPT		Loft insulation 100 200 270 mm depths quoted by the last	three-digit metric run; was pinned as a known cost, closed by the exchange-and-line rule
-ACCEPT	ACCEPT		Skirting lengths 240 300 360 cm needed across three rooms	three-digit metric run; was pinned as a known cost, closed by the exchange-and-line rule
-ACCEPT	ACCEPT		Previous quotes were 120 150 180 for the same tap repair	three-digit metric run; was pinned as a known cost, closed by the exchange-and-line rule
-ACCEPT	ACCEPT		Previous quotes were 1000, 300, 600 for the same repair	three-digit metric run; was pinned as a known cost, closed by the exchange-and-line rule
-ACCEPT	ACCEPT		Apartment 3B, 250 sq ft, quotes 120 150 180 for the work	three-digit metric run; was pinned as a known cost, closed by the exchange-and-line rule
+ACCEPT	ACCEPT		rated 10,000, 12,000 or 14,000 BTU	D288; the [2,3,2,3] thousands-list regression, closed on both arms: the exchange-and-line rule with no cue, and the list-of-numbers veto under one
+ACCEPT	ACCEPT		quotes were 1,500, 2,300, 3,100	D288; the [2,3,2,3] thousands-list regression, closed on both arms: the exchange-and-line rule with no cue, and the list-of-numbers veto under one
+ACCEPT	ACCEPT		12,000, 18,000	D288; the [2,3,2,3] thousands-list regression, closed on both arms: the exchange-and-line rule with no cue, and the list-of-numbers veto under one
+ACCEPT	ACCEPT		1,000, 2,500, 10,000	D288; the [2,3,2,3] thousands-list regression, closed on both arms: the exchange-and-line rule with no cue, and the list-of-numbers veto under one
+ACCEPT	ACCEPT		1,500; 2,300; 3,100	D288; the [2,3,2,3] thousands-list regression, closed on both arms: the exchange-and-line rule with no cue, and the list-of-numbers veto under one
+ACCEPT	REJECT	PhoneNumber	100, 150, 2000 mm	D288; a [3,3,4] quantity list, and the list veto deliberately spares this grouping because 917, 555, 0199 is the same shape and is a pinned rejection, so this cannot close
+ACCEPT	ACCEPT		1,200, 1,800, 2,400	D288; the [2,3,2,3] thousands-list regression, closed on both arms: the exchange-and-line rule with no cue, and the list-of-numbers veto under one
+ACCEPT	ACCEPT		12,000, 18,000, 24,000	D288; the [2,3,2,3] thousands-list regression, closed on both arms: the exchange-and-line rule with no cue, and the list-of-numbers veto under one
+ACCEPT	ACCEPT		Radiator widths:\n300\n450\n600	D288; a [3,3,3] quantity list, closed with no cue only: its numbers are separated by a line break and not by a thousands mark, so the list veto does not reach it and the cued twin is rowed below
+ACCEPT	ACCEPT		Radiator sizes are 600 1200 1800 mm across the flat here	D288; three-digit metric run, closed with no cue only: a space is not a list mark, so the list veto does not reach it and the cued twins are rowed below
+ACCEPT	ACCEPT		Worktop depths 300 600 900 mm and the sink is undermount	D288; three-digit metric run, closed with no cue only: a space is not a list mark, so the list veto does not reach it and the cued twins are rowed below
+ACCEPT	ACCEPT		Tile sizes 200 300 400 600 needed for the bathroom floor	D288; three-digit metric run, closed with no cue only: a space is not a list mark, so the list veto does not reach it and the cued twins are rowed below
+ACCEPT	ACCEPT		Loft insulation 100 200 270 mm depths quoted by the last	D288; three-digit metric run, closed with no cue only: a space is not a list mark, so the list veto does not reach it and the cued twins are rowed below
+ACCEPT	ACCEPT		Skirting lengths 240 300 360 cm needed across three rooms	D288; three-digit metric run, closed with no cue only: a space is not a list mark, so the list veto does not reach it and the cued twins are rowed below
+ACCEPT	ACCEPT		Previous quotes were 120 150 180 for the same tap repair	D288; three-digit metric run, closed with no cue only: a space is not a list mark, so the list veto does not reach it and the cued twins are rowed below
+ACCEPT	ACCEPT		Previous quotes were 1000, 300, 600 for the same repair	D288; three-digit metric run, closed with no cue only: a space is not a list mark, so the list veto does not reach it and the cued twins are rowed below
+ACCEPT	ACCEPT		Apartment 3B, 250 sq ft, quotes 120 150 180 for the work	D288; three-digit metric run, closed with no cue only: a space is not a list mark, so the list veto does not reach it and the cued twins are rowed below
 ACCEPT	ACCEPT		sizes 100, 150, 200 mm	clean at both SHAs and must stay so
 ACCEPT	ACCEPT		10,000 12,000 14,000 BTU	clean at both SHAs and must stay so
 ACCEPT	ACCEPT		120,000, 180,000	clean at both SHAs and must stay so
@@ -82,8 +82,8 @@ ACCEPT	ACCEPT		10001-1234	clean at both SHAs and must stay so
 ACCEPT	ACCEPT		2019, 2021, 2023	clean at both SHAs and must stay so
 ACCEPT	ACCEPT		$90-140	clean at both SHAs and must stay so
 ACCEPT	ACCEPT		9:30, 10:00, 11:30	clean at both SHAs and must stay so
-ACCEPT	ACCEPT		The old unit is rated 10,000, 12,000 or 14,000 BTU depending on the label I read	through Description.of; closed by the exchange-and-line rule
-ACCEPT	ACCEPT		Three quotes so far for the boiler swap: 12,000, 18,000 and 22,000 were mentioned	through Description.of; closed by the exchange-and-line rule
+ACCEPT	ACCEPT		The old unit is rated 10,000, 12,000 or 14,000 BTU depending on the label I read	D288; through Description.of, closed on both arms: the exchange-and-line rule with no cue, and the list-of-numbers veto under one
+ACCEPT	ACCEPT		Three quotes so far for the boiler swap: 12,000, 18,000 and 22,000 were mentioned	D288; through Description.of, closed on both arms: the exchange-and-line rule with no cue, and the list-of-numbers veto under one
 REJECT	REJECT	PhoneNumber	Kitchen tap drips from the base, reach me on 917,555,0199 to arrange a look	through Description.of; the fix working
 REJECT	ACCEPT		Kitchen tap drips from the base, reach me on 917 555 01 99 to arrange a look	through Description.of; a chosen gap that is dialable
 QUESTION	ACCEPT		bob!@gmail.com	RFC-valid; deliverability is the open half, so unlabelled
@@ -123,7 +123,7 @@ REJECT	ACCEPT		Water pours through the ceiling below, write to bob@mail,ru for t
 REJECT	REJECT	EmailAddress	Water pours through the ceiling below, write to bobby at yahoo·com about it	closed by giving the worded-at arm the dot vocabulary the domain arm already had
 ACCEPT	ACCEPT		boiler serial 1 234 567 890 is on the plate behind the panel	D268; closed by gating the stray-digit arm on the words that name a number as something else
 ACCEPT	REJECT	PhoneNumber	We counted 8 200 300 400 mm lengths of skirting in the hall here	a size list with a count in front; the same list without the count is accepted
-ACCEPT	REJECT	PhoneNumber	the quote came to 1 250 000 000 lira for the whole block here	a large sum written with SI separators
+ACCEPT	REJECT	PhoneNumber	the quote came to 1 250 000 000 lira for the whole block here	D268, D289; a large sum written with SI separators, and one of the four rows the SI residual is. It was two rows until this commit, byte for byte the same sentence twice, which the corpus could not see because it pinned three counts and not uniqueness
 REJECT	REJECT	EmailAddress	Kitchen tap drips from the base, email me at bob@gmail.com for photos	an EmailAddress at a length that reaches Description.of
 REJECT	REJECT	PaymentLink	Kitchen tap drips from the base, pay me on cash.app/$bobplumber when done	a PaymentLink at a length that reaches Description.of; every payment-brand row before this one was under twenty characters
 REJECT	REJECT	PaymentLink	Kitchen tap drips from the base, my paypal is bobplumber if that is easier	a payment brand at a length that reaches Description.of
@@ -164,9 +164,41 @@ REJECT	REJECT	PhoneNumber	9,1,7,5,5,5,0,1,9,9 is my cell, please ring about the 
 REJECT	REJECT	PhoneNumber	9;1;7;5;5;5;0;1;9;9 is my cell, please ring about the leaking radiator	D263, D265; one digit to a mark the thousands arm owns, the comma question asked of this arm (semicolon); closed by one separator rule for every arm
 REJECT	REJECT	PhoneNumber	9:1:7:5:5:5:0:1:9:9 is my cell, please ring about the leaking radiator	D263, D265; one digit to a mark the thousands arm owns, the comma question asked of this arm (colon); closed by one separator rule for every arm
 ACCEPT	ACCEPT		replace washers 1, 2, 3, 4, 5, 6, 7, 8, 9 in that order please now	D265; the cost of reading one mark to a digit, kept because the mark is followed by a space and the mark plus the space is not one mark
-REJECT	REJECT	PhoneNumber	replace washers 1 2 3 4 5 6 7 8 9 in that order please now	D265; the space spelled twin of the row above, rejected and pinned as desired
-REJECT	ACCEPT		🄊🄂🄈 🄆🄆🄆 🄁🄂🄊🄊 is my cell, ring about the leak	D264; comma-bearing digit shapes decompose to plain ASCII and the marks are then not all the same, so this stays open
+ACCEPT	ACCEPT		replace washers 1 2 3 4 5 6 7 8 9 in that order please now	D292; the space spelled twin of the row below, and refusing it is a false positive: there is no number in it. The want is flipped from REJECT deliberately, the spread arm now needs ten single digits rather than nine, and all three spellings of this sentence are rowed
+REJECT	REJECT	PhoneNumber	🄊🄂🄈 🄆🄆🄆 🄁🄂🄊🄊 is my cell, ring about the leak	D264; comma-bearing digit shapes decompose to plain ASCII and the marks are then not all the same. Closed as a side effect of reading a separator by the marks it holds rather than by the string it is
 ACCEPT	ACCEPT		the meter reading was 1 234 567 890 when I looked this morning	D268; closed by the same gate, which retires the claim that this cost could not be narrowed
 ACCEPT	ACCEPT		Radiator widths in the hall are 100 200 300 3 mm across the flat	D268; closed by the same gate, the word flat naming the number as something else
-ACCEPT	REJECT	PhoneNumber	the quote came to 1 250 000 000 lira for the whole block here	D268; one of the four rows the SI residual is now, no word around it names the number as anything
-REJECT	ACCEPT		call me on 𝋩𝋡𝋧𝋥𝋥𝋥𝋠𝋡𝋩𝋩 about the leak under the sink here	D264; the digit fold reads a UTF-16 code unit, so 334 supplementary code points with a digit value are not folded, and this gap is pinned open rather than stated as a limit
+REJECT	ACCEPT		call me on 𝋩𝋡𝋧𝋥𝋥𝋥𝋠𝋡𝋩𝋩 about the leak under the sink here	D264; the digit fold reads a UTF-16 code unit, so 335 supplementary code points with a digit value are not folded, and this gap is pinned open rather than stated as a limit
+REJECT	REJECT	PhoneNumber	9,1,7-5,5,5-0,1,9,9 is my cell, please ring about the leaking radiator	D303, D305; a run spelled two ways, refused where every uniform spelling was already refused
+REJECT	REJECT	PhoneNumber	9,1,7 5,5,5 0,1,9,9 is my cell, please ring about the leaking radiator	D303, D305; marks inside each group and spaces between them, grouped 3-3-4 as a number is grouped
+REJECT	REJECT	PhoneNumber	9.1.7 5.5.5 0.1.9.9 is my cell, please ring about the leaking radiator	D303, D305; the same two-level spelling with a dot inside each group
+REJECT	REJECT	PhoneNumber	9-1-7 5-5-5 0-1-9-9 is my cell, please ring about the leaking radiator	D303, D305; the same two-level spelling with a hyphen inside each group
+REJECT	REJECT	PhoneNumber	9;1;7,5,5,5,0,1,9,9 is my cell, please ring about the leaking radiator	D303, D305; two keystrokes from the pinned refusal on the line above it, and stored until this commit
+REJECT	REJECT	PhoneNumber	9,1,7,5,5,5,0,1,9, 9 is my cell, please ring about the leaking radiator	D292; one comma followed by a space, which is two code points and was therefore not one mark
+REJECT	REJECT	PhoneNumber	9 , 1 , 7 , 5 , 5 , 5 , 0 , 1 , 9 , 9 is my cell, ring about the radiator	D292; a mark padded with a space on each side is the same separator as the bare mark
+REJECT	ACCEPT		9-1 7-5 5-5 0-1 9-9 is my cell, please ring about the leaking radiator	D290; the shape the one-spelling rule lost, named in a commit message and rowed here instead. Its spaces group it as five groups of two, the same grouping as the fraction rows at lines 79 and 80, so nothing that closes this leaves those accepted. Stated rather than closed
+REJECT	REJECT	PaymentLink	sort code 12 - 34 - 56 and the invoice is settled by the weekend	D305; how many marks a separator holds is now decided once for every arm rather than per arm
+REJECT	REJECT	PaymentLink	sort code 12, 34, 56 and the invoice is settled by the weekend	D305; the sort code arm allowed one mark, so a mark and a space returned nothing
+REJECT	REJECT	PaymentLink	pay it to GB82- WEST- 1234- 5698- 7654- 32 when the work is done	D292; the checksum is intact and only the spelling changed, so the bare-mark twin proves the arm was blind
+REJECT	REJECT	PaymentLink	pay it to GB82 - WEST - 1234 - 5698 - 7654 - 32 when the work is done	D305; the iban arm required exactly one mark between groups, where the phone arm allowed eight
+REJECT	REJECT	EmailAddress	bob at bobsplumbing(dot)com is where the invoices go for this job	D305; a bracketed dot with no space around it, on a host that is not a consumer mail host
+REJECT	REJECT	EmailAddress	bob at bobsplumbing[dot]com is where the invoices go for this job	D305; the fix varied the host in the spaced rows and the spacing in the consumer-host rows, never crossed
+REJECT	REJECT	EmailAddress	bob(at)bobsplumbing(dot)com is where the invoices go for this job	D305; the worded at is read with the same spacings as the worded dot, on any host
+ACCEPT	ACCEPT		replace washers 1,2,3,4,5,6,7,8,9 in that order please now	D292; the unrowed twin of the two rows above, refused until this commit at nine single digits
+ACCEPT	REJECT	PhoneNumber	boiler serviced 2019 2021 2023 and now it leaks, call me anytime	D288; the cue residual priced rather than left at one row. The numbers are separated by a space, which is not a list mark, so the list veto does not reach it
+ACCEPT	REJECT	PhoneNumber	Radiator widths are 1400 1600 1800 mm, call me about the sizes	D288; the cue residual, a space separated list of four-digit numbers
+ACCEPT	REJECT	PhoneNumber	the invoices are 4455 4456 4457, call me about the three visits	D288; the cue residual, a space separated list of four-digit numbers
+ACCEPT	REJECT	PhoneNumber	the unit is rated 10,000 12,000 14,000 BTU on the label, call me	D288; the cue residual, thousands-formatted numbers separated by a space rather than by a mark
+ACCEPT	REJECT	PhoneNumber	the fuse blew on 2026-09-24, 350 Example Street, call me back	D288; the cue residual, a date beside a street number
+ACCEPT	REJECT	PhoneNumber	the two quotes were £12,000, £18,000 for the work, call me	D288; the cue residual, a list mark carrying a currency sign, so the separator is not a list mark
+ACCEPT	ACCEPT		the unit is rated 10,000, 12,000 or 14,000 BTU, call me anytime	D288; the cued twin of line 55, which the corpus could not see before, so the delta could not see the class
+ACCEPT	ACCEPT		the three quotes were 1,500, 2,300, 3,100 for the job, call me	D288; the cued twin of line 56
+ACCEPT	ACCEPT		boiler serviced 2019, 2021, 2023 and now it leaks, call me anytime	D288; the sentence the finding was reported with, a list of four-digit numbers separated by a list mark
+ACCEPT	ACCEPT		the swap was quoted at 12,000, 18,000, 24,000 so far, call me	D288; the cued twin of line 62
+ACCEPT	REJECT	PhoneNumber	I need 2 600 900 1200 mm boards cut for the shelves in the alcove	D289; the third of the four sentences the SI residual is pinned with, rowed so the two instruments agree about the size of a residual they both describe
+ACCEPT	REJECT	PhoneNumber	The riser needs 6 100 150 200 mm couplers to finish the run here	D289; the fourth of the four sentences the SI residual is pinned with
+REJECT	REJECT	PhoneNumber	ring me 917555019 about the leak under the kitchen sink	D290; nine digits with a cue and no separators are found, and the spaced twin below is not. Filed as a question for an owner rather than as a defect: the floor is arm-dependent and both spellings are dialable
+REJECT	ACCEPT		ring me 917 555 019 about the leak under the kitchen sink	D290; the spaced twin of the row above, nine digits with a cue, not found. Two spellings of one number differing only in grouping, rowed here so the question is somewhere something reads
+REJECT	REJECT	PhoneNumber	9--1--7--5--5--5--0--1--9--9 is my cell, please ring about the radiator	D220, D305; a separator of two marks, stored while the one-mark twin was refused, because the spread arm counted marks after the shared rule had already decided how many one separator holds
+REJECT	REJECT	PhoneNumber	9!!1!!7!!5!!5!!5!!0!!1!!9!!9 is my cell, please ring about the radiator	D220; the second of three spellings a green plant and its control found in this round's own work
+REJECT	REJECT	PhoneNumber	9.,1.,7.,5.,5.,5.,0.,1.,9.,9 is my cell, please ring about the radiator	D220; the third, two different marks in one separator rather than the same one twice
