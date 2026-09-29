@@ -30,7 +30,7 @@ public struct HDRatingBars: View {
 
     public let rows: [HDRatingBarsRow]
 
-    public init(rows: [HDRatingBarsRow] = HDRatingBars.exampleRows) {
+    public init(rows: [HDRatingBarsRow]) {
         self.rows = rows
     }
 
