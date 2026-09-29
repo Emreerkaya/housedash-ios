@@ -79,6 +79,7 @@ public enum DescriptionFilter {
     public static let punctuationTheThousandsArmOwns = ",;:"
     public static let mostDigitsBeforeAThousandsSeparator = 3
     public static let digitsInAThousandsGroup = 3
+    public static let digitsAStrayGroupHolds = 1
 
     private static let phoneCandidate = expression(
         #"\+?+\p{Nd}(?:[^\p{L}\p{Nd}]{0,8}+\p{Nd}){0,31}+"#
@@ -174,10 +175,23 @@ public enum DescriptionFilter {
         let separators = separatorsBetweenGroups(in: candidate)
         if isGroupedByTheThousandsMarks(separators), isGroupedLikeThousands(groups) { return false }
         if candidate.hasPrefix("+") { return true }
+        if endsLikeAnExchangeAndALine(groups) { return true }
+        let trimmed = Array(
+            groups
+                .drop(while: { $0 == digitsAStrayGroupHolds })
+                .reversed()
+                .drop(while: { $0 == digitsAStrayGroupHolds })
+                .reversed()
+        )
+        guard trimmed.count != groups.count, digitsInAPhoneNumber.contains(trimmed.reduce(0, +)) else { return false }
+        return endsLikeAnExchangeAndALine(trimmed)
+    }
+
+    static func endsLikeAnExchangeAndALine(_ groups: [Int]) -> Bool {
         guard
             phoneGroupsADialableNumberHas.contains(groups.count),
             groups.allSatisfy({ $0 <= mostDigitsInAPhoneGroup }),
-            digits == digitsInADialableNumber,
+            groups.reduce(0, +) == digitsInADialableNumber,
             groups.last == digitsInTheLineGroup,
             digitsInTheGroupBeforeTheLine.contains(groups[groups.count - 2])
         else { return false }

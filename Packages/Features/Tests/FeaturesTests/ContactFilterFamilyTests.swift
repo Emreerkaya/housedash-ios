@@ -28,6 +28,15 @@ final class ContactFilterFamilyTests: XCTestCase {
 
     private static func isDialableUnderTheServersRule(_ groups: [Int], _ separators: [String]) -> Bool {
         if isGroupedByTheThousandsMarks(separators), isGroupedLikeThousands(groups) { return false }
+        if endsLikeAnExchangeAndALine(groups) { return true }
+        let trimmed = Array(
+            groups.drop(while: { $0 == 1 }).reversed().drop(while: { $0 == 1 }).reversed()
+        )
+        guard trimmed.count != groups.count, (9...15).contains(trimmed.reduce(0, +)) else { return false }
+        return endsLikeAnExchangeAndALine(trimmed)
+    }
+
+    private static func endsLikeAnExchangeAndALine(_ groups: [Int]) -> Bool {
         guard groups.count >= 3, groups.count <= 6 else { return false }
         guard groups.allSatisfy({ $0 <= 6 }) else { return false }
         guard groups.reduce(0, +) == 10 else { return false }
@@ -184,6 +193,29 @@ final class ContactFilterFamilyTests: XCTestCase {
             XCTAssertFalse(
                 DescriptionFilter.signals(in: longer).contains(.phoneNumber),
                 "'\(longer)' is refused, and the server accepts it, because the digit run around the dialable window is not being counted"
+            )
+        }
+    }
+
+    func testAStrayDigitGroupBesideADialableRunNoLongerHidesIt() {
+        for refused in [
+            "1 917 555 0199",
+            "Kitchen tap drips from the base, flat 3, 917-555-0199 is my cell",
+            "unit 2, 917 555 0199"
+        ] {
+            XCTAssertTrue(
+                DescriptionFilter.signals(in: refused).contains(.phoneNumber),
+                "'\(refused)' reaches Case ready, and the server refuses it, so the only I7 on this side of the wire is letting a dialable number through with one stray digit beside it"
+            )
+        }
+        for accepted in [
+            "buzzer 12, 917-555-0199",
+            "the plate reads 1234 917-555-0199 next to the valve",
+            "the part number is 141-445-2266-01 on the label"
+        ] {
+            XCTAssertFalse(
+                DescriptionFilter.signals(in: accepted).contains(.phoneNumber),
+                "'\(accepted)' is refused and the server accepts it, so trimming stray groups has gone past what the server trims, which is a rule this client would be enforcing alone"
             )
         }
     }
