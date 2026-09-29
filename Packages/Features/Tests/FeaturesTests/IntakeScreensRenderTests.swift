@@ -443,6 +443,48 @@ final class IntakeScreensRenderTests: XCTestCase {
         )
     }
 
+    func testEveryScreenThatAnnouncesStillAnnouncesTheModelsOwnMessage() throws {
+        let sources = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources")
+        let walker = try XCTUnwrap(
+            FileManager.default.enumerator(at: sources, includingPropertiesForKeys: nil),
+            "\(sources.path) cannot be walked, so this test read nothing"
+        )
+        let files = walker.compactMap { $0 as? URL }.filter { $0.pathExtension == "swift" }
+        XCTAssertGreaterThan(files.count, 1, "the scan found \(files.count) source files, so it read nothing")
+
+        var announcing: [String] = []
+        var readWithoutAnnouncing: [String] = []
+        for file in files {
+            guard let text = try? String(contentsOf: file, encoding: .utf8) else { continue }
+            let reads = text.components(separatedBy: "model.announcement").count - 1
+            let announces = text.components(separatedBy: "hdAnnounce(model.announcement").count - 1
+            if announces > 0 { announcing.append(file.lastPathComponent) }
+            if reads != announces {
+                readWithoutAnnouncing.append("\(file.lastPathComponent) reads it \(reads) times and announces it \(announces)")
+            }
+        }
+        XCTAssertEqual(
+            readWithoutAnnouncing, [],
+            "a screen reads the model's announcement somewhere other than hdAnnounce, so the message reaches the screen and not the screen reader: \(readWithoutAnnouncing.joined(separator: " · "))"
+        )
+        XCTAssertEqual(
+            announcing.sorted(),
+            [
+                "B01FixScreen.swift",
+                "B02PickProblemScreen.swift",
+                "B03DescribeItScreen.swift",
+                "B04SomethingElseScreen.swift",
+                "B07AFewDetailsScreen.swift",
+                "PhotoHomeScreen.swift"
+            ],
+            "the screens that announce are \(announcing.sorted()); this is a pinned set rather than a derived one because the rule it stands for — a screen an announcement can land on announces it — is a property of the routing and not of any file's text, and deleting the call from one screen is otherwise green"
+        )
+    }
+
     private func composer() -> HDField<EmptyView> {
         HDField(
             label: "In your own words",
