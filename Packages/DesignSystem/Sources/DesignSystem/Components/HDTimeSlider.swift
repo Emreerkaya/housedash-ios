@@ -25,6 +25,7 @@ public struct HDTimeSlider: View {
     public static let thumbTapTarget: CGFloat = 44
 
     private static let trackHeight: CGFloat = 3
+    private static let selectedRangeBoundaryWidth: CGFloat = 1
     private static let trackY: CGFloat = 83
     private static let thumbSize: CGFloat = 24
     private static let thumbY: CGFloat = 74
@@ -64,6 +65,10 @@ public struct HDTimeSlider: View {
                     RoundedRectangle(cornerRadius: Self.trackHeight / 2)
                         .fill(Color.hdContext)
                         .frame(width: max(0, trailing - leading), height: Self.trackHeight)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Self.trackHeight / 2)
+                                .strokeBorder(Color.hdOnContext, lineWidth: Self.selectedRangeBoundaryWidth)
+                        )
                         .offset(x: leading, y: Self.trackY)
                 }
 

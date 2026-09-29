@@ -36,6 +36,7 @@ public struct HDRoleIsland: View {
     public static let halfWidth: CGFloat = (size.width - thumbInset * 2) / 2
     public static let segmentHeight: CGFloat = size.height - thumbInset * 2
     public static let minimumTouchTarget: CGFloat = 44
+    public static let selectedBoundaryWidth: CGFloat = 1.5
 
     static var tapExpansion: CGFloat {
         max(0, (minimumTouchTarget - segmentHeight) / 2)
@@ -73,7 +74,9 @@ public struct HDRoleIsland: View {
                 .frame(minWidth: Self.halfWidth, minHeight: Self.segmentHeight)
                 .background {
                     if isSelected {
-                        Capsule().fill(Color.hdContext)
+                        Capsule()
+                            .fill(Color.hdContext)
+                            .overlay(Capsule().strokeBorder(Color.hdOnContext, lineWidth: Self.selectedBoundaryWidth))
                     }
                 }
         }

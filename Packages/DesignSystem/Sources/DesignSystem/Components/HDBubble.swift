@@ -8,6 +8,7 @@ public enum HDBubbleSide: Sendable, Equatable {
 public struct HDBubble: View {
     public static let maxWidth: CGFloat = 280
     public static let cornerRadius: CGFloat = 22
+    public static let sideBoundaryWidth: CGFloat = 1.5
 
     public let text: String
     public let side: HDBubbleSide
@@ -51,7 +52,8 @@ public struct HDBubble: View {
             RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
                 .strokeBorder(Color.hdHairline, lineWidth: 1)
         case .outgoing:
-            EmptyView()
+            RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
+                .strokeBorder(Color.hdOnContext, lineWidth: Self.sideBoundaryWidth)
         }
     }
 }
