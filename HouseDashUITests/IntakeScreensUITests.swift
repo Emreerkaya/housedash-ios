@@ -74,7 +74,11 @@ final class IntakeScreensUITests: XCTestCase {
         let findings = AuditFindings()
         for category in Self.auditedCategories {
             try? app.performAccessibilityAudit(for: category) { @Sendable issue in
-                guard let element = issue.element, region.contains(element.frame) else { return true }
+                guard let element = issue.element else {
+                    findings.record("\(issue.compactDescription) names no element, so it cannot be placed inside or outside the region and is kept")
+                    return true
+                }
+                guard region.contains(element.frame) else { return true }
                 findings.record("\(issue.compactDescription) on '\(element.label)' at \(element.frame)")
                 return true
             }
