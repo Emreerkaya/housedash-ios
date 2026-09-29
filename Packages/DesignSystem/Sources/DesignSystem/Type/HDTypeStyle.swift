@@ -32,6 +32,7 @@ public struct HDTypeStyle: Sendable, Equatable {
 }
 
 public enum HDType {
+    public static let brand = HDTypeStyle(size: 40, weight: .semibold, tracking: -0.86, family: .zillaSlabSemiBold)
     public static let titleLarge = HDTypeStyle(size: 31, weight: .semibold, tracking: -0.6665, family: .zillaSlabSemiBold)
     public static let money = HDTypeStyle(size: 44, weight: .bold, tracking: -0.977)
     public static let headlineFigure = HDTypeStyle(size: 32, weight: .bold, tracking: -0.691)
