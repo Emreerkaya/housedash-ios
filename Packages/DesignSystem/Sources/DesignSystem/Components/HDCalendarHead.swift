@@ -2,8 +2,10 @@ import SwiftUI
 
 public struct HDCalendarHead: View {
     public static let size = CGSize(width: 353, height: 74)
+    public static let chevronTapTarget: CGFloat = 44
 
-    private static let weekdayX: [CGFloat] = [20.71, 69.64, 121.57, 170, 222.43, 273.36, 323.29]
+    private static let weekdayXFractions: [CGFloat] = [20.71, 69.64, 121.57, 170, 222.43, 273.36, 323.29]
+        .map { $0 / size.width }
     private static let weekdayY: CGFloat = 44
     private static let ruleY: CGFloat = 70
 
@@ -13,7 +15,7 @@ public struct HDCalendarHead: View {
     public let onNext: (() -> Void)?
 
     public init(
-        monthYear: String = "October 2026",
+        monthYear: String,
         weekdaySymbols: [String] = ["S", "M", "T", "W", "T", "F", "S"],
         onPrevious: (() -> Void)? = nil,
         onNext: (() -> Void)? = nil
@@ -25,39 +27,49 @@ public struct HDCalendarHead: View {
     }
 
     public var body: some View {
-        ZStack(alignment: .topLeading) {
-            chevron("‹", action: onPrevious, accessibilityLabel: "Previous month")
-                .offset(x: 0, y: 3)
+        GeometryReader { proxy in
+            let width = proxy.size.width
 
-            Text(monthYear)
-                .hdTypeStyle(HDType.bodyStrong)
-                .foregroundStyle(Color.hdInk)
-                .offset(x: 119, y: 6)
+            ZStack(alignment: .topLeading) {
+                HStack(spacing: 0) {
+                    chevron("‹", action: onPrevious, accessibilityLabel: "Previous month")
+                    Spacer(minLength: 0)
+                    chevron("›", action: onNext, accessibilityLabel: "Next month")
+                }
+                .frame(width: width)
+                .offset(y: -4)
 
-            chevron("›", action: onNext, accessibilityLabel: "Next month")
-                .offset(x: 342, y: 3)
+                Text(monthYear)
+                    .hdTypeStyle(HDType.bodyStrong)
+                    .foregroundStyle(Color.hdInk)
+                    .frame(width: width, alignment: .center)
+                    .multilineTextAlignment(.center)
+                    .offset(y: 6)
 
-            ForEach(Array(zip(Self.weekdayX.indices, weekdaySymbols)), id: \.0) { index, symbol in
-                Text(symbol)
-                    .hdTypeStyle(HDType.caption)
-                    .foregroundStyle(Color.hdInkFaint)
-                    .offset(x: Self.weekdayX[index], y: Self.weekdayY)
+                ForEach(Array(zip(Self.weekdayXFractions.indices, weekdaySymbols)), id: \.0) { index, symbol in
+                    Text(symbol)
+                        .hdTypeStyle(HDType.caption)
+                        .foregroundStyle(Color.hdInkFaint)
+                        .offset(x: Self.weekdayXFractions[index] * width, y: Self.weekdayY)
+                }
+
+                Rectangle()
+                    .fill(Color.hdHairline)
+                    .frame(width: width, height: 1)
+                    .offset(y: Self.ruleY)
             }
-
-            Rectangle()
-                .fill(Color.hdHairline)
-                .frame(width: Self.size.width, height: 1)
-                .offset(x: 0, y: Self.ruleY)
         }
-        .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
-        .clipped()
+        .frame(height: Self.size.height)
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
-    private func chevron(_ glyph: String, action: (() -> Void)?, accessibilityLabel: String) -> some View {
+    func chevron(_ glyph: String, action: (() -> Void)?, accessibilityLabel: String) -> some View {
         let label = Text(glyph)
-            .font(.system(size: 30, weight: .regular))
+            .hdTypeStyle(HDType.chevron)
             .foregroundStyle(Color.hdInkSoft)
+            .frame(width: Self.chevronTapTarget, height: Self.chevronTapTarget)
+            .contentShape(Rectangle())
 
         if let action {
             Button(action: action) { label }
