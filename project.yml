@@ -37,6 +37,8 @@ targets:
           - UIInterfaceOrientationPortrait
         UIAppFonts:
           - ZillaSlab-SemiBold.ttf
+        NSCameraUsageDescription: "HouseDash uses your camera to photograph the problem you are reporting."
+        NSPhotoLibraryUsageDescription: "HouseDash lets you add a photo of the problem from your library."
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.housedash.app

@@ -1,5 +1,7 @@
 import DesignSystem
+import PhotosUI
 import SwiftUI
+import UIKit
 
 enum CameraCaptureChrome {
     case tabRoot(title: String, onReview: () -> Void)
@@ -40,15 +42,52 @@ struct CameraCaptureScreen: View {
     let chrome: CameraCaptureChrome
     let capturedCount: Int
     let isCaptureAvailable: Bool
+    let permission: CameraPermission
     let onCapture: () -> Void
+    let onPickFromLibrary: (String) -> Void
+
+    @State private var pickerSelection: PhotosPickerItem?
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         VStack(spacing: 0) {
             nav
-            preview
-            cameraBar
+            if permission == .denied {
+                permissionDeniedState
+            } else {
+                preview
+                cameraBar
+            }
         }
         .background(Color.hdGround.ignoresSafeArea(edges: .top))
+        .onChange(of: pickerSelection) { _, newValue in
+            guard let newValue else { return }
+            onPickFromLibrary(newValue.itemIdentifier ?? UUID().uuidString)
+            pickerSelection = nil
+        }
+    }
+
+    private var permissionDeniedState: some View {
+        VStack(spacing: HDSpacing.item) {
+            Spacer(minLength: 0)
+            HDText("Camera access is off", style: HDType.section, color: .hdInk)
+            HDText(
+                "HouseDash needs the camera to photograph the problem. Turn it on in Settings.",
+                style: HDType.body,
+                color: .hdInkSoft
+            )
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, HDSpacing.margin)
+            Button("Open Settings") {
+                guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+                openURL(url)
+            }
+            .buttonStyle(.borderedProminent)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, minHeight: Self.minimumPreviewHeight, maxHeight: .infinity)
+        .padding(HDSpacing.margin)
+        .accessibilityElement(children: .combine)
     }
 
     private var nav: some View {
@@ -100,9 +139,12 @@ struct CameraCaptureScreen: View {
     }
 
     var hint: String {
-        isCaptureAvailable
-            ? "Get the whole fitting in frame, then a close-up"
-            : "This build has no camera yet, so the shutter is off"
+        if isCaptureAvailable { return "Get the whole fitting in frame, then a close-up" }
+        switch permission {
+        case .notDetermined: return "Waiting for camera permission…"
+        case .denied: return ""
+        case .authorized: return "This build has no camera yet, so the shutter is off"
+        }
     }
 
     func pill(_ text: String, minimumScaleFactor: CGFloat?) -> some View {
@@ -139,13 +181,19 @@ struct CameraCaptureScreen: View {
             .frame(minWidth: 48, minHeight: 48)
             .accessibilityLabel("Review \(capturedCount) captured photos")
             .accessibilityAddTraits(.isButton)
+        } else if capturedCount == 0 {
+            PhotosPicker(selection: $pickerSelection, matching: .images) {
+                thumbnail
+                    .contentShape(Rectangle())
+            }
+            .frame(minWidth: 48, minHeight: 48)
+            .accessibilityLabel("Add a photo from your library")
+            .accessibilityAddTraits(.isButton)
         } else {
             thumbnail
                 .frame(minWidth: 48, minHeight: 48)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(
-                    capturedCount > 0 ? "\(capturedCount) photos captured" : "No photos captured yet"
-                )
+                .accessibilityLabel("\(capturedCount) photos captured")
         }
     }
 
@@ -180,7 +228,7 @@ struct CameraCaptureScreen: View {
         .buttonStyle(.plain)
         .disabled(!isCaptureAvailable)
         .frame(minWidth: 72, minHeight: 72)
-        .accessibilityLabel(isCaptureAvailable ? "Take photo" : "Take photo, no camera in this build")
+        .accessibilityLabel(isCaptureAvailable ? "Take photo" : "Take photo, camera unavailable")
         .accessibilityAddTraits(.isButton)
     }
 
@@ -190,6 +238,6 @@ struct CameraCaptureScreen: View {
             .frame(width: Self.flashIndicatorSide, height: Self.flashIndicatorSide)
             .contentShape(Rectangle())
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Flash unavailable, this build has no camera")
+            .accessibilityLabel("Flash unavailable")
     }
 }

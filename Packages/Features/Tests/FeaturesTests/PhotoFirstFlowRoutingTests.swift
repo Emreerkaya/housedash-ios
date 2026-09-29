@@ -96,6 +96,48 @@ final class PhotoFirstFlowRoutingTests: XCTestCase {
         XCTAssertEqual(model.path, [])
         XCTAssertNil(model.rejection, "the banner must not survive back-navigation and reappear stale")
     }
+    func testAdoptingFromTheLibraryAddsAPhotoEvenWithNoCameraInThisBuild() {
+        let model = PhotoFirstFlowModel(camera: FakeCamera(isAvailable: false))
+        model.adoptLibraryPhoto(identifier: "library-1")
+
+        XCTAssertEqual(model.photos.map(\.id), ["library-1"])
+    }
+
+    func testAdoptingFromTheLibraryRespectsTheFourPhotoCap() {
+        let model = PhotoFirstFlowModel(camera: FakeCamera())
+        for index in 0..<6 { model.adoptLibraryPhoto(identifier: "library-\(index)") }
+
+        XCTAssertEqual(model.photos.count, 4)
+    }
+
+    func testCameraPermissionMirrorsThePortsPermissionAtStartup() {
+        let authorized = PhotoFirstFlowModel(camera: FakeCamera(permission: .authorized))
+        XCTAssertEqual(authorized.cameraPermission, .authorized)
+
+        let denied = PhotoFirstFlowModel(camera: FakeCamera(permission: .denied))
+        XCTAssertEqual(denied.cameraPermission, .denied)
+    }
+
+    func testRequestingPermissionWhenNotDeterminedUpdatesTheModel() async {
+        let model = PhotoFirstFlowModel(
+            camera: FakeCamera(isAvailable: false, permission: .notDetermined, requestPermissionResult: .authorized)
+        )
+
+        await model.requestCameraPermissionIfNeeded()
+
+        XCTAssertEqual(model.cameraPermission, .authorized)
+    }
+
+    func testRequestingPermissionWhenAlreadyDecidedDoesNotAskAgain() async {
+        let model = PhotoFirstFlowModel(
+            camera: FakeCamera(permission: .denied, requestPermissionResult: .authorized)
+        )
+
+        await model.requestCameraPermissionIfNeeded()
+
+        XCTAssertEqual(model.cameraPermission, .denied, "a decided permission must not be silently overwritten")
+    }
+
     func testTheRefusalNamesTheBoxOnThePhotoFirstPathToo() {
         let model = PhotoFirstFlowModel(camera: FakeCamera())
         model.capturePhoto()

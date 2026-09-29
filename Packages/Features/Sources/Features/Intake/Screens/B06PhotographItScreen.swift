@@ -9,7 +9,9 @@ struct B06PhotographItScreen: View {
             chrome: .pushed(title: "Photograph it", onBack: { model.finishPhotoCapture() }),
             capturedCount: model.photos.count,
             isCaptureAvailable: model.isCameraAvailable,
-            onCapture: { model.capturePhoto() }
+            permission: model.cameraPermission,
+            onCapture: { model.capturePhoto() },
+            onPickFromLibrary: { model.adoptLibraryPhoto(identifier: $0) }
         )
         .hdTabBarHidden()
     }

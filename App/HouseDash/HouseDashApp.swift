@@ -37,10 +37,6 @@ struct HouseDashApp: App {
     }
 
     private static func makeCamera() -> PhotoCapture {
-        #if DEBUG
-        FixtureCamera()
-        #else
-        UnavailableCamera()
-        #endif
+        LiveCamera()
     }
 }

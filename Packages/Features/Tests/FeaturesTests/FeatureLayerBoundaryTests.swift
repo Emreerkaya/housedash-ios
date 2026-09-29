@@ -6,13 +6,13 @@ final class FeatureLayerBoundaryTests: XCTestCase {
         "Domain": ["Foundation"],
         "Flow": ["DesignSystem", "Foundation", "Observation", "SwiftUI"],
         "Screens": ["DesignSystem", "SwiftUI"],
-        "Support": ["DesignSystem", "SwiftUI"]
+        "Support": ["AVFoundation", "DesignSystem", "Foundation", "PhotosUI", "SwiftUI", "UIKit"]
     ]
     private static let swiftFilesUnderEachLayer: [String: Int] = [
         "Domain": 7,
         "Flow": 13,
         "Screens": 12,
-        "Support": 8
+        "Support": 9
     ]
     private static let featureDirectoriesTheScanMustCover: Set<String> = [
         "Auth",
@@ -33,7 +33,7 @@ final class FeatureLayerBoundaryTests: XCTestCase {
         "Intake/Domain/PhotoCapture.swift",
         "Intake/Domain/ProblemCatalogue.swift"
     ]
-    private static let importStatementsTheScanMustRead = 64
+    private static let importStatementsTheScanMustRead = 68
     private static let packagesTheWorkspaceHolds: Set<String> = ["DesignSystem", "Features", "Networking"]
     private static let packagesFeaturesMayDependOn: Set<String> = ["DesignSystem"]
     private static let layerOfAFileSittingDirectlyUnderItsFeature = "Flow"
