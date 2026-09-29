@@ -59,6 +59,7 @@ targets:
     dependencies:
       - target: HouseDash
       - package: DesignSystem
+      - package: Features
 
   HouseDashUITests:
     type: bundle.ui-testing
