@@ -3,7 +3,7 @@ import SwiftUI
 public struct HDField: View {
     private let label: String
     private let placeholder: String
-    @Binding private var text: String
+    @Binding var text: String
     private let trailing: String?
 
     public init(label: String, placeholder: String, text: Binding<String>, trailing: String? = nil) {
