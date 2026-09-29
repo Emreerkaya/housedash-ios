@@ -5,7 +5,7 @@ public struct ToolboxHomeScreen: View {
     public init() {}
 
     public var body: some View {
-        HDTabScreen(tab: .toolbox) {
+        HDTabScreen(tab: .diy) {
             HDScreen {
                 HDItemStack {
                     HDText("Toolbox", style: HDType.titleLarge)

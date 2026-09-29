@@ -1,15 +1,20 @@
 import XCTest
+import DesignSystem
 @testable import Features
 
 final class HDTabTests: XCTestCase {
     func testFiveTabsInSpecOrder() {
-        XCTAssertEqual(HDTab.allCases, [.fix, .jobs, .photo, .toolbox, .profile])
+        XCTAssertEqual(HDNesterTab.allCases, [.fix, .jobs, .photo, .diy, .profile])
     }
 
-    func testEveryTabHasATitleAndAnIcon() {
-        for tab in HDTab.allCases {
-            XCTAssertFalse(tab.title.isEmpty)
+    func testEveryTabHasALabelAndAnIcon() {
+        for tab in HDNesterTab.allCases {
+            XCTAssertFalse(tab.label.isEmpty)
             XCTAssertFalse(tab.systemImage.isEmpty)
         }
+    }
+
+    func testDIYTabIsNamedByD127NotTheOldToolboxName() {
+        XCTAssertEqual(HDNesterTab.diy.label, "DIY")
     }
 }
