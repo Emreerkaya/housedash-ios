@@ -2,6 +2,7 @@ import CoreGraphics
 import UIKit
 import XCTest
 
+@MainActor
 final class IntakeScreensUITests: XCTestCase {
     private static let settleInterval: TimeInterval = 1.2
 
@@ -10,7 +11,7 @@ final class IntakeScreensUITests: XCTestCase {
     }
 
     override func tearDown() {
-        XCUIDevice.shared.appearance = .light
+        MainActor.assumeIsolated { XCUIDevice.shared.appearance = .light }
         super.tearDown()
     }
 
