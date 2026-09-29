@@ -18,15 +18,15 @@ public struct HDTypeStyle: Sendable, Equatable {
         self.family = family
     }
 
-    public var font: Font { scaledFont(unit: 1) }
+    public var font: Font { font(atScaledSize: size) }
 
-    public func scaledFont(unit: CGFloat) -> Font {
+    public func font(atScaledSize scaledSize: CGFloat) -> Font {
         switch family {
         case .system:
-            return .system(size: size * unit, weight: weight)
+            return .system(size: scaledSize, weight: weight)
         case .zillaSlabSemiBold:
             _ = HDZillaSlab.registerOnce
-            return .custom(HDZillaSlab.postScriptName, fixedSize: size * unit)
+            return .custom(HDZillaSlab.postScriptName, fixedSize: scaledSize)
         }
     }
 }
@@ -50,12 +50,17 @@ public enum HDType {
 private struct HDTypeStyleModifier: ViewModifier {
     let style: HDTypeStyle
 
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+    @ScaledMetric private var scaledSize: CGFloat
+
+    init(style: HDTypeStyle) {
+        self.style = style
+        _scaledSize = ScaledMetric(wrappedValue: style.size, relativeTo: .body)
+    }
 
     func body(content: Content) -> some View {
         content
-            .font(style.scaledFont(unit: unit))
-            .tracking(style.tracking * unit)
+            .font(style.font(atScaledSize: scaledSize))
+            .tracking(style.tracking * (scaledSize / style.size))
     }
 }
 
