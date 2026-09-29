@@ -9,6 +9,12 @@ public enum HDFieldMetrics {
 public struct HDField<Accessory: View>: View {
     public static var minimumHeight: CGFloat { HDFieldMetrics.minimumHeight }
 
+    public static func wraps(at size: DynamicTypeSize, axis: Axis) -> Bool {
+        axis == .vertical || size.isAccessibilitySize
+    }
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     private let label: String
     private let placeholder: String
     @Binding var text: String
@@ -41,56 +47,68 @@ public struct HDField<Accessory: View>: View {
         self.accessory = accessory()
     }
 
+    private var wraps: Bool { Self.wraps(at: dynamicTypeSize, axis: axis) }
+
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if showsLabel {
                 HDText(label, style: HDType.caption, color: .hdInkSoft)
             }
 
-            HStack(alignment: axis == .vertical ? .top : .center, spacing: 0) {
-                input
-                    .hdTypeStyle(HDType.body)
-                    .foregroundStyle(Color.hdInk)
-                    .accessibilityIdentifier(label)
-                    .accessibilityLabel(label)
+            HStack(alignment: wraps ? .top : .center, spacing: 0) {
+                ZStack(alignment: wraps ? .topLeading : .leading) {
+                    if text.isEmpty {
+                        HDText(placeholder, style: HDType.body, color: .hdInkFaint)
+                            .allowsHitTesting(false)
+                            .accessibilityHidden(true)
+                    }
+                    input
+                        .hdTypeStyle(HDType.body)
+                        .foregroundStyle(Color.hdInk)
+                        .accessibilityIdentifier(label)
+                        .accessibilityLabel(label)
+                        .accessibilityValue(text.isEmpty ? placeholder : text)
+                }
                 Spacer(minLength: 0)
                 if let trailing {
                     HDText(trailing, style: HDType.label, color: .hdInkSoft)
                 }
                 accessory
             }
-            .modifier(HDFieldBox(axis: axis))
+            .modifier(HDFieldBox(wraps: wraps))
         }
     }
 
     @ViewBuilder
     private var input: some View {
         if isSecure {
-            SecureField(
-                text: $text,
-                prompt: Text(placeholder).foregroundStyle(Color.hdInkFaint)
-            ) {
+            SecureField(text: $text, prompt: nil) {
+                Text(placeholder)
+            }
+        } else if axis == .vertical {
+            TextField(text: $text, prompt: nil, axis: .vertical) {
+                Text(placeholder)
+            }
+            .lineLimit(minimumVisibleLines, reservesSpace: true)
+        } else if wraps {
+            TextField(text: $text, prompt: nil, axis: .vertical) {
                 Text(placeholder)
             }
         } else {
-            TextField(
-                text: $text,
-                prompt: Text(placeholder).foregroundStyle(Color.hdInkFaint),
-                axis: axis
-            ) {
+            TextField(text: $text, prompt: nil, axis: .horizontal) {
                 Text(placeholder)
             }
-            .lineLimit(axis == .vertical ? minimumVisibleLines : 1, reservesSpace: axis == .vertical)
+            .lineLimit(1)
         }
     }
 }
 
 private struct HDFieldBox: ViewModifier {
-    let axis: Axis
+    let wraps: Bool
 
     func body(content: Content) -> some View {
         Group {
-            if axis == .vertical {
+            if wraps {
                 content.padding(HDFieldMetrics.padding)
             } else {
                 content
