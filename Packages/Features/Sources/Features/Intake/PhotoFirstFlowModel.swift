@@ -9,6 +9,7 @@ public enum PhotoFirstRoute: Hashable, Sendable {
 @Observable
 public final class PhotoFirstFlowModel {
     public static let photoLimit = 4
+    public static let descriptionFieldLabel = IntakeFlowModel.descriptionFieldLabel
 
     public var path: [PhotoFirstRoute] = []
     public var photos: [CapturedPhoto] = []
@@ -52,22 +53,24 @@ public final class PhotoFirstFlowModel {
     public func submit() {
         rejection = nil
         guard canSubmit else { return }
-        switch Description.of(descriptionText) {
-        case .success(let description):
-            isSubmitting = true
-            defer { isSubmitting = false }
-            completedSubmission = IntakeSubmission(
-                description: description,
-                problem: nil,
-                location: "",
-                photos: photos
-            )
-            announcement = "Case ready"
-            path = []
-        case .failure(.rejected(let rejection)):
+        let signals = DescriptionFilter.signals(in: descriptionText)
+        guard signals.isEmpty else {
+            let rejection = DescriptionRejection(signals: signals, fieldLabels: [Self.descriptionFieldLabel])
             self.rejection = rejection
             announcement = rejection.summary
+            return
         }
+        guard case .success(let description) = Description.of(descriptionText) else { return }
+        isSubmitting = true
+        defer { isSubmitting = false }
+        completedSubmission = IntakeSubmission(
+            description: description,
+            problem: nil,
+            location: "",
+            photos: photos
+        )
+        announcement = "Case ready"
+        path = []
     }
 
     public func acknowledgeCompletion() {

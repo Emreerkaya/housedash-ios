@@ -98,9 +98,8 @@ public final class IntakeFlowModel {
     }
 
     public func confirmSymptomSelection() {
-        guard let symptom = selectedSymptom else { return }
+        guard let symptom = selectedSymptom, let route = route(for: symptom) else { return }
         rejection = nil
-        let route = route(for: symptom)
         if route != describedRoute {
             descriptionText = ""
             locationText = ""
@@ -116,12 +115,12 @@ public final class IntakeFlowModel {
         }
     }
 
-    private func route(for symptom: SymptomOption) -> DescribedRoute {
+    private func route(for symptom: SymptomOption) -> DescribedRoute? {
         switch symptom.kind {
         case .ownWords:
             return .ownWords
         case .symptom:
-            guard let problem = selectedProblem else { return .ownWords }
+            guard let problem = selectedProblem else { return nil }
             return .symptom(problem, symptom)
         }
     }
