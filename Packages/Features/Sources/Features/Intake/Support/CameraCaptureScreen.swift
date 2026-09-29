@@ -35,6 +35,7 @@ struct CameraCaptureScreen: View {
     static let minimumPreviewHeight: CGFloat = 320
     static let photoCountBadgeInk: HDToken = .context
     static let navigationTitleInset: CGFloat = 44 + HDSpacing.margin
+    static let flashIndicatorSide: CGFloat = 44
 
     let chrome: CameraCaptureChrome
     let capturedCount: Int
@@ -188,7 +189,8 @@ struct CameraCaptureScreen: View {
     var flashIndicator: some View {
         Image(systemName: "bolt.slash.fill")
             .foregroundStyle(Color.hdOnContext)
-            .frame(width: 44, height: 44)
+            .frame(width: Self.flashIndicatorSide, height: Self.flashIndicatorSide)
+            .contentShape(Rectangle())
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Flash unavailable, this build has no camera")
     }

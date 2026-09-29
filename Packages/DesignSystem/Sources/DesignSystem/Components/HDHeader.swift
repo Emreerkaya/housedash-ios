@@ -1,6 +1,8 @@
 import SwiftUI
 
 public struct HDHeader: View {
+    public static let minimumBackTouchTarget: CGFloat = 44
+
     public struct Action {
         public let title: String
         public let handler: () -> Void
@@ -28,7 +30,8 @@ public struct HDHeader: View {
                     if let onBack {
                         Button(action: onBack) {
                             HDText("‹", style: HDType.chevron, color: .hdInk)
-                                .frame(width: 44, height: 44, alignment: .leading)
+                                .frame(width: HDHeader.minimumBackTouchTarget, height: HDHeader.minimumBackTouchTarget, alignment: .leading)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Back")
