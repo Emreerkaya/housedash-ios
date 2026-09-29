@@ -4,26 +4,26 @@ import XCTest
 @MainActor
 final class PhotoFirstFlowRoutingTests: XCTestCase {
     func testReviewingWithNoPhotosDoesNothingBecauseThereIsNothingToReview() {
-        let model = PhotoFirstFlowModel()
+        let model = PhotoFirstFlowModel(camera: FakeCamera())
         model.reviewPhotos()
         XCTAssertEqual(model.path, [])
     }
 
     func testCapturingThenReviewingAdvancesToAFewDetails() {
-        let model = PhotoFirstFlowModel()
+        let model = PhotoFirstFlowModel(camera: FakeCamera())
         model.capturePhoto()
         model.reviewPhotos()
         XCTAssertEqual(model.path, [.aFewDetails])
     }
 
     func testCapturingIsCappedAtFourToMatchTheTwoByTwoGrid() {
-        let model = PhotoFirstFlowModel()
+        let model = PhotoFirstFlowModel(camera: FakeCamera())
         for _ in 0..<6 { model.capturePhoto() }
         XCTAssertEqual(model.photos.count, 4)
     }
 
     func testRejectedSubmissionKeepsPhotosAndText() {
-        let model = PhotoFirstFlowModel()
+        let model = PhotoFirstFlowModel(camera: FakeCamera())
         model.capturePhoto()
         model.descriptionText = "email me at bob@example.com"
 
@@ -35,7 +35,7 @@ final class PhotoFirstFlowRoutingTests: XCTestCase {
     }
 
     func testSuccessfulSubmissionClearsThePathAndRecordsTheDescription() {
-        let model = PhotoFirstFlowModel()
+        let model = PhotoFirstFlowModel(camera: FakeCamera())
         model.capturePhoto()
         model.reviewPhotos()
         model.descriptionText = "drips constantly from the base"
@@ -43,6 +43,57 @@ final class PhotoFirstFlowRoutingTests: XCTestCase {
         model.submit()
 
         XCTAssertEqual(model.path, [])
-        XCTAssertEqual(model.completedDescription?.text, "drips constantly from the base")
+        XCTAssertEqual(model.completedSubmission?.description.text, "drips constantly from the base")
+    }
+
+    func testTheSubmissionCarriesEveryPhotoTheUserCanSeeAndNoOthers() {
+        let model = PhotoFirstFlowModel(camera: FakeCamera())
+        model.capturePhoto()
+        model.capturePhoto()
+        model.reviewPhotos()
+        model.descriptionText = "drips constantly from the base"
+
+        model.submit()
+
+        XCTAssertEqual(model.completedSubmission?.photos, model.photos)
+        XCTAssertEqual(model.completedSubmission?.photos.count, 2)
+    }
+
+    func testABlankDescriptionCannotBeSubmittedAndProducesNoCase() {
+        for blank in ["", "   ", "\n\t "] {
+            let model = PhotoFirstFlowModel(camera: FakeCamera())
+            model.capturePhoto()
+            model.reviewPhotos()
+            model.descriptionText = blank
+
+            XCTAssertFalse(model.canSubmit, "\(blank.debugDescription) must not enable the CTA")
+            model.submit()
+
+            XCTAssertNil(model.completedSubmission, "\(blank.debugDescription) produced a case")
+            XCTAssertEqual(model.path, [.aFewDetails], "a blocked submission must not navigate")
+        }
+    }
+
+    func testWithNoCameraTheShutterAddsNothingRatherThanFabricatingAPhoto() {
+        let model = PhotoFirstFlowModel(camera: FakeCamera(isAvailable: false))
+        model.capturePhoto()
+        model.capturePhoto()
+
+        XCTAssertFalse(model.isCameraAvailable)
+        XCTAssertTrue(model.photos.isEmpty)
+    }
+
+    func testGoingBackFromAFewDetailsClearsAStaleRejectionBanner() {
+        let model = PhotoFirstFlowModel(camera: FakeCamera())
+        model.capturePhoto()
+        model.reviewPhotos()
+        model.descriptionText = "email me at bob@example.com"
+        model.submit()
+        XCTAssertNotNil(model.rejection)
+
+        model.goBack()
+
+        XCTAssertEqual(model.path, [])
+        XCTAssertNil(model.rejection, "the banner must not survive back-navigation and reappear stale")
     }
 }

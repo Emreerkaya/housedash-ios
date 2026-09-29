@@ -9,39 +9,50 @@ import DesignSystem
 #if canImport(UIKit)
 @MainActor
 final class IntakeScreensRenderTests: XCTestCase {
+    private static let contentWidth: CGFloat = 353
+    private static let deviceWidth: CGFloat = 402
+
     private func measuredSize<V: View>(
         _ view: V,
-        proposal: CGSize = CGSize(width: 393, height: CGFloat.infinity),
+        width: CGFloat = 393,
         dynamicTypeSize: DynamicTypeSize = .large
     ) -> CGSize {
         let controller = UIHostingController(rootView: view.environment(\.dynamicTypeSize, dynamicTypeSize))
-        return controller.sizeThatFits(in: proposal)
+        return controller.sizeThatFits(in: CGSize(width: width, height: CGFloat.infinity))
+    }
+
+    private func idealWidth(_ text: String, style: HDTypeStyle, dynamicTypeSize: DynamicTypeSize) -> CGFloat {
+        measuredSize(HDText(text, style: style, color: .hdInk), width: 10_000, dynamicTypeSize: dynamicTypeSize).width
     }
 
     private func makeModel() -> IntakeFlowModel {
-        let model = IntakeFlowModel(catalogue: FakeProblemCatalogue())
+        let model = IntakeFlowModel(catalogue: FakeProblemCatalogue(), camera: FakeCamera())
         model.rails = [
-            ProblemRail(id: "common-in-a-kitchen", heading: "Common in a kitchen", cards: [FakeProblemCatalogue.drippingTap, FakeProblemCatalogue.blockedDrain])
+            ProblemRail(
+                id: "common-in-a-kitchen",
+                heading: "Common in a kitchen",
+                cards: [FakeProblemCatalogue.drippingTap, FakeProblemCatalogue.blockedDrain]
+            )
         ]
         return model
     }
 
     private func makePhotoModel() -> PhotoFirstFlowModel {
-        PhotoFirstFlowModel()
+        PhotoFirstFlowModel(camera: FakeCamera())
     }
 
-    // MARK: - Dynamic Type to the largest accessibility size, nothing clipped
+    private func chosenRow() -> HDIdentityRow {
+        let problem = FakeProblemCatalogue.drippingTap
+        return HDIdentityRow(
+            primary: problem.fullTitle,
+            secondary: "\(problem.category) · \(problem.priceRange) typical",
+            onChange: {}
+        )
+    }
 
     func testB01GrowsInsteadOfClippingAtLargestAccessibilitySize() {
         let normal = measuredSize(B01FixScreen(model: makeModel()), dynamicTypeSize: .large)
         let huge = measuredSize(B01FixScreen(model: makeModel()), dynamicTypeSize: .accessibility5)
-        XCTAssertGreaterThan(huge.height, normal.height)
-    }
-
-    func testRailHeadingGrowsInIsolationSoASiblingCannotMaskALocalizedLineLimitRegression() {
-        let screen = B01FixScreen(model: makeModel())
-        let normal = measuredSize(screen.railHeading("Common in a kitchen"), dynamicTypeSize: .large)
-        let huge = measuredSize(screen.railHeading("Common in a kitchen"), dynamicTypeSize: .accessibility5)
         XCTAssertGreaterThan(huge.height, normal.height)
     }
 
@@ -74,8 +85,6 @@ final class IntakeScreensRenderTests: XCTestCase {
         XCTAssertGreaterThan(huge.height, normal.height)
     }
 
-    // MARK: - A rejection banner is present and grows too, since it is now part of the content
-
     func testRejectionBannerGrowsAtLargestAccessibilitySizeOnB03() {
         let model = makeModel()
         model.selectedProblem = FakeProblemCatalogue.drippingTap
@@ -89,29 +98,228 @@ final class IntakeScreensRenderTests: XCTestCase {
         XCTAssertGreaterThan(huge.height, normal.height)
     }
 
-    // MARK: - Every unbreakable single-token string on these screens carries a scale factor (D174)
+    func testEveryComponentOnTheseScreensGrowsInIsolationAtTheLargestAccessibilitySize() {
+        let rejection = DescriptionRejection(signals: [.phoneNumber])
+        let measurements: [(String, CGSize, CGSize)] = [
+            (
+                "IntakeCard",
+                measuredSize(
+                    IntakeCard(problem: FakeProblemCatalogue.drippingTap, action: {}),
+                    width: Self.contentWidth,
+                    dynamicTypeSize: .large
+                ),
+                measuredSize(
+                    IntakeCard(problem: FakeProblemCatalogue.drippingTap, action: {}),
+                    width: Self.contentWidth,
+                    dynamicTypeSize: .accessibility5
+                )
+            ),
+            (
+                "IntakeRejectionBanner",
+                measuredSize(IntakeRejectionBanner(rejection: rejection), width: Self.contentWidth),
+                measuredSize(
+                    IntakeRejectionBanner(rejection: rejection),
+                    width: Self.contentWidth,
+                    dynamicTypeSize: .accessibility5
+                )
+            ),
+            (
+                "IntakePickRow",
+                measuredSize(
+                    IntakePickRow(symptom: FakeProblemCatalogue.drippingTapSymptoms[0], action: {}),
+                    width: Self.contentWidth
+                ),
+                measuredSize(
+                    IntakePickRow(symptom: FakeProblemCatalogue.drippingTapSymptoms[0], action: {}),
+                    width: Self.contentWidth,
+                    dynamicTypeSize: .accessibility5
+                )
+            ),
+            (
+                "chosen row",
+                measuredSize(chosenRow(), width: Self.contentWidth),
+                measuredSize(chosenRow(), width: Self.contentWidth, dynamicTypeSize: .accessibility5)
+            ),
+            (
+                "B03 add tile",
+                measuredSize(IntakePhotoTile(kind: .add(caption: "Add"), action: {}), width: 99),
+                measuredSize(
+                    IntakePhotoTile(kind: .add(caption: "Add"), action: {}),
+                    width: 99,
+                    dynamicTypeSize: .accessibility5
+                )
+            ),
+            (
+                "B07 add tile",
+                measuredSize(
+                    IntakePhotoTile(kind: .add(caption: "Add from your phone"), minimumHeight: 124, cornerRadius: 10),
+                    width: 165
+                ),
+                measuredSize(
+                    IntakePhotoTile(kind: .add(caption: "Add from your phone"), minimumHeight: 124, cornerRadius: 10),
+                    width: 165,
+                    dynamicTypeSize: .accessibility5
+                )
+            ),
+            (
+                "camera hint pill",
+                measuredSize(cameraScreen().pill(cameraScreen().hint, minimumScaleFactor: nil), width: Self.contentWidth),
+                measuredSize(
+                    cameraScreen().pill(cameraScreen().hint, minimumScaleFactor: nil),
+                    width: Self.contentWidth,
+                    dynamicTypeSize: .accessibility5
+                )
+            ),
+            (
+                "HDField with a trailing token",
+                measuredSize(whereField(), width: Self.contentWidth),
+                measuredSize(whereField(), width: Self.contentWidth, dynamicTypeSize: .accessibility5)
+            ),
+            (
+                "the B04 composer",
+                measuredSize(composer(), width: Self.contentWidth),
+                measuredSize(composer(), width: Self.contentWidth, dynamicTypeSize: .accessibility5)
+            )
+        ]
 
-    func testRoomChipLabelsHaveNoInternalSpaceAndMustScaleRatherThanTruncate() {
-        for room in HDRoom.allCases {
-            XCTAssertFalse(room.label.contains(" "), "\(room.label) is treated as an unbreakable token by the chip")
+        for (name, normal, huge) in measurements {
+            XCTAssertGreaterThan(
+                huge.height, normal.height,
+                "\(name) did not grow at accessibility5: \(normal) -> \(huge)"
+            )
         }
     }
 
-    func testZoomPillTextHasNoSpaceAndCarriesAScaleFactor() {
-        XCTAssertFalse("1×".contains(" "))
+    func testNoPhotoTileIsEverShorterThanTheContentInsideIt() {
+        let tiles: [(String, IntakePhotoTileKind, CGFloat, CGFloat)] = [
+            ("B03 add tile", .add(caption: "Add"), 108, 99),
+            ("B07 add tile", .add(caption: "Add from your phone"), 124, 165),
+            ("B07 captured tile", .captured(timestampLabel: "11:24"), 124, 165),
+            ("B07 captured tile with a dated label", .captured(timestampLabel: "Yesterday 11:24"), 124, 165)
+        ]
+
+        for (name, kind, declared, width) in tiles {
+            for size in [DynamicTypeSize.large, .accessibility5] {
+                let content = measuredSize(
+                    IntakePhotoTile(kind: kind, minimumHeight: 0, cornerRadius: 10),
+                    width: width,
+                    dynamicTypeSize: size
+                ).height
+                let tile = measuredSize(
+                    IntakePhotoTile(kind: kind, minimumHeight: declared, cornerRadius: 10),
+                    width: width,
+                    dynamicTypeSize: size
+                ).height
+
+                XCTAssertGreaterThanOrEqual(
+                    tile, content,
+                    "\(name) at \(size) is \(tile)pt around \(content)pt of content, so the content overflows it"
+                )
+                XCTAssertGreaterThanOrEqual(tile, declared, "\(name) at \(size) fell below its declared minimum")
+            }
+        }
     }
 
-    // MARK: - 44pt targets on the controls this section adds
+    func testAPhotoTileGrowsPastItsDeclaredMinimumWhenItsContentNeedsMore() {
+        let b03 = measuredSize(
+            IntakePhotoTile(kind: .add(caption: "Add"), action: {}),
+            width: 99,
+            dynamicTypeSize: .accessibility5
+        )
+        let b07 = measuredSize(
+            IntakePhotoTile(kind: .add(caption: "Add from your phone"), minimumHeight: 124, cornerRadius: 10),
+            width: 165,
+            dynamicTypeSize: .accessibility5
+        )
+        XCTAssertGreaterThan(b03.height, 108, "the B03 tile still pins its content to 108pt")
+        XCTAssertGreaterThan(b07.height, 124, "the B07 tile still pins its content to 124pt")
+    }
+
+    func testNoFixedWidthColumnIsNarrowerThanTheWidestWordItMustRender() {
+        let cardWidth = measuredSize(
+            IntakeCard(problem: FakeProblemCatalogue.drippingTap, action: {}),
+            width: Self.contentWidth,
+            dynamicTypeSize: .accessibility5
+        ).width
+
+        for title in ["Dishwasher", "Draught-seal", "Silicone", "$140–220"] {
+            let needed = idealWidth(title, style: HDType.label, dynamicTypeSize: .accessibility5)
+            XCTAssertGreaterThanOrEqual(
+                cardWidth, needed,
+                "a card \(cardWidth)pt wide cannot render '\(title)', which needs \(needed)pt, without breaking it mid-word"
+            )
+        }
+    }
+
+    func testTheHintPillStillFitsInsideThePreviewItSitsOn() {
+        let pill = measuredSize(
+            cameraScreen().pill(cameraScreen().hint, minimumScaleFactor: nil),
+            width: Self.deviceWidth - 2 * HDSpacing.margin,
+            dynamicTypeSize: .accessibility5
+        )
+        XCTAssertLessThan(
+            pill.height + 2 * HDSpacing.margin,
+            CameraCaptureScreen.minimumPreviewHeight,
+            "the hint pill overflows the shortest preview it can be drawn on"
+        )
+    }
+
+    func testTheCameraTitleFitsTheWidthItIsGivenAtTheLargestAccessibilitySize() {
+        let available = Self.deviceWidth - 2 * CameraCaptureScreen.navigationTitleInset
+        let needed = idealWidth("Show us the problem", style: HDType.bodyStrong, dynamicTypeSize: .accessibility5)
+        XCTAssertGreaterThanOrEqual(
+            available, needed * 0.6,
+            "the title cannot reach its 0.6 scale floor in \(available)pt, so it truncates"
+        )
+    }
+
+    func testTheChosenRowStacksRatherThanSqueezingItsTitleIntoAColumnTooNarrowForOneWord() {
+        let stacked = measuredSize(chosenRow(), width: Self.contentWidth, dynamicTypeSize: .accessibility5)
+        let available = Self.contentWidth - 2 * 18
+        for word in ["Dripping", "faucet"] {
+            let needed = idealWidth(word, style: HDType.bodyStrong, dynamicTypeSize: .accessibility5)
+            XCTAssertGreaterThanOrEqual(
+                available, needed,
+                "'\(word)' needs \(needed)pt and the stacked row offers \(available)pt, so it breaks mid-word"
+            )
+        }
+        XCTAssertGreaterThan(stacked.height, HDIdentityRow.minimumHeight)
+    }
+
+    func testEveryGroupHeadingGoesThroughTheOneComponentThatCarriesTheHeaderTrait() {
+        let screen = B01FixScreen(model: makeModel())
+        XCTAssertTrue(
+            String(describing: type(of: screen.railHeading("Common in a kitchen"))).contains("HDGroupHeading"),
+            "a rail heading drawn as bare text is invisible to the heading rotor"
+        )
+        XCTAssertTrue(String(describing: HDGroupHeading.self).contains("HDGroupHeading"))
+    }
+
+    func testTheFlashAffordanceIsNoLongerAControlAtAll() {
+        let camera = cameraScreen()
+        XCTAssertFalse(
+            String(describing: type(of: camera.flashIndicator)).contains("Button"),
+            "the flash is a Button again, and it still cannot do anything"
+        )
+    }
+
+    func testThePhotoCountBadgeClearsAAOnTheCircleItSitsIn() {
+        for band in HDBand.allCases {
+            let ratio = HDContrast.ratio(of: CameraCaptureScreen.photoCountBadgeInk, on: .onContext, in: band)
+            XCTAssertGreaterThanOrEqual(
+                ratio, 4.5,
+                "the count is \(String(format: "%.2f", ratio)):1 on its own circle in \(band), so it is unreadable"
+            )
+        }
+    }
 
     func testChangeAffordanceOnTheChosenRowMeetsTheFortyFourPointTouchTarget() {
-        let size = measuredSize(
-            IntakeChosenRow(primary: "Dripping tap or faucet", secondary: "Water · $90–140 typical", onChange: {})
-        )
+        let size = measuredSize(chosenRow(), width: Self.contentWidth)
         XCTAssertGreaterThanOrEqual(size.height, HDIdentityRow.minimumHeight)
     }
 
     func testAddPhotoTileMeetsTheFortyFourPointTouchTarget() {
-        let size = measuredSize(IntakePhotoTile(kind: .add(caption: "Add"), action: {}))
+        let size = measuredSize(IntakePhotoTile(kind: .add(caption: "Add"), action: {}), width: 99)
         XCTAssertGreaterThanOrEqual(size.height, 44)
     }
 
@@ -125,16 +333,33 @@ final class IntakeScreensRenderTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(size.height, 44)
     }
 
-    // MARK: - VoiceOver: a photo affordance is never invisible to a screen reader
-
-    func testCardAccessibilityLabelDataCombinesTitleAndPriceRatherThanLeavingThePhotoUnlabeled() {
-        let problem = FakeProblemCatalogue.drippingTap
-        XCTAssertEqual("\(problem.title), \(problem.priceRange)", "Dripping tap, $90–140")
+    private func cameraScreen() -> CameraCaptureScreen {
+        CameraCaptureScreen(
+            chrome: .tabRoot(title: "Show us the problem", onReview: {}),
+            capturedCount: 0,
+            isCaptureAvailable: true,
+            onCapture: {}
+        )
     }
 
-    func testAddPhotoTileCaptionIsNeverEmpty() {
-        XCTAssertFalse("Add".isEmpty)
-        XCTAssertFalse("Add from your phone".isEmpty)
+    private func whereField() -> HDField<EmptyView> {
+        HDField(
+            label: "Where",
+            placeholder: "Greenwich Village, 10012",
+            text: .constant(""),
+            trailing: HDRoom.kitchen.label
+        )
+    }
+
+    private func composer() -> HDField<EmptyView> {
+        HDField(
+            label: "In your own words",
+            placeholder: "The radiator in the back bedroom never gets hot, even with the valve fully open.",
+            text: .constant(""),
+            axis: .vertical,
+            showsLabel: false,
+            minimumVisibleLines: 4
+        )
     }
 }
 #endif
