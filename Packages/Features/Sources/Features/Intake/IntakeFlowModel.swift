@@ -5,10 +5,10 @@ import Observation
 public struct IntakeSubmission: Sendable, Equatable {
     public let description: Description
     public let problem: ProblemSummary?
-    public let location: String
+    public let location: Location
     public let photos: [CapturedPhoto]
 
-    public init(description: Description, problem: ProblemSummary?, location: String, photos: [CapturedPhoto]) {
+    public init(description: Description, problem: ProblemSummary?, location: Location, photos: [CapturedPhoto]) {
         self.description = description
         self.problem = problem
         self.location = location
@@ -34,6 +34,9 @@ public final class IntakeFlowModel {
     public static let photoLimit = 3
     public static let descriptionFieldLabel = "What is it doing?"
     public static let locationFieldLabel = "Where"
+    public static let nothingIsPickedYet = "Pick what it is doing first."
+    public static let theProblemThisOptionBelongsToIsGone =
+        "That option belongs to a problem that is no longer picked, so go back and choose the problem again."
 
     public let rooms: [HDRoom] = HDRoom.allCases
     public var selectedRoom: HDRoom = .kitchen
@@ -67,7 +70,8 @@ public final class IntakeFlowModel {
     public var isCameraAvailable: Bool { camera.isAvailable }
 
     public var canConfirmSymptom: Bool {
-        selectedSymptom != nil
+        guard let symptom = selectedSymptom else { return false }
+        return route(for: symptom) != nil
     }
 
     public var canSubmit: Bool {
@@ -98,7 +102,14 @@ public final class IntakeFlowModel {
     }
 
     public func confirmSymptomSelection() {
-        guard let symptom = selectedSymptom, let route = route(for: symptom) else { return }
+        guard let symptom = selectedSymptom else {
+            announcement = Self.nothingIsPickedYet
+            return
+        }
+        guard let route = route(for: symptom) else {
+            announcement = Self.theProblemThisOptionBelongsToIsGone
+            return
+        }
         rejection = nil
         if route != describedRoute {
             descriptionText = ""
@@ -151,10 +162,10 @@ public final class IntakeFlowModel {
     public func submit() {
         rejection = nil
         guard canSubmit else { return }
-        let location = locationText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let typedLocation = locationText.trimmingCharacters(in: .whitespacesAndNewlines)
         let refusals = [
             (Self.descriptionFieldLabel, DescriptionFilter.signals(in: descriptionText)),
-            (Self.locationFieldLabel, DescriptionFilter.signals(in: location))
+            (Self.locationFieldLabel, DescriptionFilter.signals(in: typedLocation))
         ].filter { !$0.1.isEmpty }
         guard refusals.isEmpty else {
             let rejection = DescriptionRejection(
@@ -167,7 +178,10 @@ public final class IntakeFlowModel {
             announcement = rejection.summary
             return
         }
-        guard case .success(let description) = Description.of(descriptionText) else { return }
+        guard
+            case .success(let description) = Description.of(descriptionText),
+            case .success(let location) = Location.of(typedLocation)
+        else { return }
         isSubmitting = true
         defer { isSubmitting = false }
         completedSubmission = IntakeSubmission(

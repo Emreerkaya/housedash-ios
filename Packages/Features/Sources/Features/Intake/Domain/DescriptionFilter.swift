@@ -68,6 +68,25 @@ public struct Description: Sendable, Equatable {
     }
 }
 
+public struct Location: Sendable, Equatable {
+    public static let unspecified = Location(text: "")
+
+    public let text: String
+
+    private init(text: String) {
+        self.text = text
+    }
+
+    public static func of(_ raw: String) -> Result<Location, DescriptionValidationError> {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let signals = DescriptionFilter.signals(in: trimmed)
+        guard signals.isEmpty else {
+            return .failure(.rejected(DescriptionRejection(signals: signals)))
+        }
+        return .success(Location(text: trimmed))
+    }
+}
+
 public enum DescriptionFilter {
     public static let digitsInADialableNumber = 10
     public static let digitsInTheLineGroup = 4
