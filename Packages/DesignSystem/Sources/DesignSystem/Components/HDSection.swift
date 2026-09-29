@@ -12,6 +12,7 @@ public struct HDSection: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HDText(title, style: HDType.bodyStrong, color: .hdInk)
+                .accessibilityAddTraits(.isHeader)
             HDText(supportingLine, style: HDType.caption, color: .hdInkSoft)
         }
     }
