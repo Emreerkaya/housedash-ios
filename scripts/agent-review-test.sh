@@ -133,9 +133,17 @@ check 'a diff of the workflows requires the security review' 1 \
     "$(set_of "$(review accessibility clean)" "$(review architecture clean)" "$(review testing clean)")" \
     'missing: no security review'
 
-check 'a review naming a dimension this diff does not require cannot block' 0 "$untouched" \
-    "$(set_of "$(review accessibility clean)" "$(review architecture clean)" "$(review testing clean)" "$(review invariants blocked)")" \
-    'is not one this diff requires'
+check 'a clean review naming a dimension this diff does not require is not counted' 0 "$untouched" \
+    "$(set_of "$(review accessibility clean)" "$(review architecture clean)" "$(review testing clean)" "$(review invariants clean)")" \
+    'is not counted'
+
+check 'a blocked review blocks even when this diff does not require its dimension' 1 "$untouched" \
+    "$(set_of "$(review accessibility clean)" "$(review architecture clean)" "$(review testing clean)" "$(review security blocked)")" \
+    'reports verdict blocked'
+
+check 'a malformed verdict fails closed even on a dimension this diff does not require' 1 "$untouched" \
+    "$(set_of "$(review accessibility clean)" "$(review architecture clean)" "$(review testing clean)" "$(review security blockedd)")" \
+    'is not one of the verdicts'
 
 check 'an empty diff refuses to pass vacuously' 2 "" "$all_five" 'refusing to pass vacuously'
 
@@ -152,11 +160,11 @@ out=$(PATH="${stub_dir}:${PATH}" \
     PR_NUMBER=1 HEAD_SHA="$sha" GITHUB_REPOSITORY=Emreerkaya/housedash-ios \
     bash "$gate" 2>&1)
 got=$?
-if [ "$got" -eq 0 ] || printf '%s' "$out" | grep -q 'every required dimension'; then
-    printf 'FAIL a gh that cannot list the changed files must not pass the gate: exit %s\n%s\n\n' "$got" "$out" >&2
+if [ "$got" -ne 1 ] || printf '%s' "$out" | grep -qE 'every required dimension|refusing to pass vacuously'; then
+    printf 'FAIL a gh that cannot list the changed files must fail loudly, not vacuously: exit %s\n%s\n\n' "$got" "$out" >&2
     fail=$((fail + 1))
 else
-    printf 'ok a gh that cannot list the changed files must not pass the gate\n'
+    printf 'ok a gh that cannot list the changed files must fail loudly, not vacuously\n'
     pass=$((pass + 1))
 fi
 
