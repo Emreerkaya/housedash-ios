@@ -27,7 +27,7 @@ public enum HDTaskerTab: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-public struct HDTabBarTasker: View {
+public struct HDTabBarTasker: View, HDDrawsAStateMark {
     public let active: HDTaskerTab
     public let onSelect: (HDTaskerTab) -> Void
 

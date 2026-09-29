@@ -1,3 +1,4 @@
+import Foundation
 import XCTest
 import SwiftUI
 #if canImport(UIKit)
@@ -12,10 +13,37 @@ final class HDSelectionSeparationTests: XCTestCase {
     private static let wcagNonTextContrast: Double = 3
     private static let renderScale: CGFloat = 2
     private static let alphaAPixelMustCarryToBeRead: UInt8 = 200
-    private static let traitTheScanTreatsAsASelectionState = ".isSelected"
-    private static let filesTheScanExpectsAtLeast = 1
     private static let leastShareOfDifferingPixelsAMarkMustSeparate = 0.05
     private static let pairsWhoseSecondStateIsInactive: Set<String> = ["HDActionBar"]
+    private static let marksNoPairOfRenderingsCanIsolate: Set<String> = ["HDTimeSlider"]
+    private static let bandsTheSweepMustCover: [ColorScheme] = [.light, .dark]
+    private static let componentsTheSweepMustCover: Set<String> = [
+        "HDActionBar",
+        "HDBubble",
+        "HDChip",
+        "HDRoleIsland",
+        "HDTabBarNester",
+        "HDTabBarTasker",
+        "IntakePickRow"
+    ]
+    private static let swiftFilesUnderEachPackagesSources = [
+        "DesignSystem": 33,
+        "Features": 39,
+        "Networking": 3
+    ]
+    private static let typeDeclaration = "\\b(?:struct|class|enum|actor)\\s+([A-Za-z_][A-Za-z0-9_]*)"
+    private static let conformanceDeclaration =
+        "\\b(?:struct|class|enum|actor|extension)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(?:<[^>]*>)?\\s*:([^{]*)\\{"
+
+    private static var nameOfTheMarkTheFamilyIsKeyedOn: String {
+        String(describing: HDDrawsAStateMark.self)
+    }
+
+    private static func extent() -> Set<String> {
+        Set(componentsTheSweepMustCover.flatMap { component in
+            bandsTheSweepMustCover.map { "\(component)/\($0)" }
+        })
+    }
 
     private struct StatePair {
         let component: String
@@ -43,6 +71,19 @@ final class HDSelectionSeparationTests: XCTestCase {
         )
     }
 
+    private static func pair<Component: View & HDDrawsAStateMark>(
+        width: CGFloat,
+        selected: Component,
+        unselected: Component
+    ) -> StatePair {
+        StatePair(
+            component: String(describing: Component.self),
+            width: width,
+            selected: onTheGround(selected, width: width),
+            unselected: onTheGround(unselected, width: width)
+        )
+    }
+
     private static func symptom(_ price: String?) -> SymptomOption {
         SymptomOption(
             id: "drips-constantly",
@@ -54,50 +95,40 @@ final class HDSelectionSeparationTests: XCTestCase {
 
     private static func statePairs() -> [StatePair] {
         [
-            StatePair(
-                component: "HDChip",
+            pair(
                 width: 140,
-                selected: onTheGround(HDChip("Kitchen", state: .selected) {}, width: 140),
-                unselected: onTheGround(HDChip("Kitchen", state: .unselected) {}, width: 140)
+                selected: HDChip("Kitchen", state: .selected) {},
+                unselected: HDChip("Kitchen", state: .unselected) {}
             ),
-            StatePair(
-                component: "IntakePickRow",
+            pair(
                 width: 318,
-                selected: onTheGround(IntakePickRow(symptom: symptom("$90–140"), isSelected: true) {}, width: 318),
-                unselected: onTheGround(IntakePickRow(symptom: symptom("$90–140"), isSelected: false) {}, width: 318)
+                selected: IntakePickRow(symptom: symptom("$90–140"), isSelected: true) {},
+                unselected: IntakePickRow(symptom: symptom("$90–140"), isSelected: false) {}
             ),
-            StatePair(
-                component: "HDRoleIsland",
+            pair(
                 width: 200,
-                selected: onTheGround(HDRoleIsland(selected: .nester) { _ in }, width: 200),
-                unselected: onTheGround(HDRoleIsland(selected: .tasker) { _ in }, width: 200)
+                selected: HDRoleIsland(selected: .nester) { _ in },
+                unselected: HDRoleIsland(selected: .tasker) { _ in }
             ),
-            StatePair(
-                component: "HDTabBarNester",
+            pair(
                 width: 402,
-                selected: onTheGround(HDTabBarNester(active: .fix) { _ in }, width: 402),
-                unselected: onTheGround(HDTabBarNester(active: .jobs) { _ in }, width: 402)
+                selected: HDTabBarNester(active: .fix) { _ in },
+                unselected: HDTabBarNester(active: .jobs) { _ in }
             ),
-            StatePair(
-                component: "HDTabBarTasker",
+            pair(
                 width: 402,
-                selected: onTheGround(HDTabBarTasker(active: .requests) { _ in }, width: 402),
-                unselected: onTheGround(HDTabBarTasker(active: .calendar) { _ in }, width: 402)
+                selected: HDTabBarTasker(active: .requests) { _ in },
+                unselected: HDTabBarTasker(active: .calendar) { _ in }
             ),
-            StatePair(
-                component: "HDBubble",
+            pair(
                 width: 280,
-                selected: onTheGround(HDBubble("On my way, about ten minutes", side: .outgoing), width: 280),
-                unselected: onTheGround(HDBubble("On my way, about ten minutes", side: .incoming), width: 280)
+                selected: HDBubble("On my way, about ten minutes", side: .outgoing),
+                unselected: HDBubble("On my way, about ten minutes", side: .incoming)
             ),
-            StatePair(
-                component: "HDActionBar",
+            pair(
                 width: 402,
-                selected: onTheGround(HDActionBar(ctaTitle: "Next", isCTAEnabled: true) {}, width: 402),
-                unselected: onTheGround(
-                    HDActionBar(ctaTitle: "Next", isCTAEnabled: false, disabledExplanation: "pick one first") {},
-                    width: 402
-                )
+                selected: HDActionBar(ctaTitle: "Next", isCTAEnabled: true) {},
+                unselected: HDActionBar(ctaTitle: "Next", isCTAEnabled: false, disabledExplanation: "pick one first") {}
             )
         ]
     }
@@ -189,11 +220,11 @@ final class HDSelectionSeparationTests: XCTestCase {
 
     func testEverySelectionStateIsSeparatedFromItsNeighbourOnRenderedPixelsInBothBands() throws {
         var failures: [String] = []
-        var measured = 0
+        var measured: Set<String> = []
         for pair in Self.statePairs() {
-            for scheme in [ColorScheme.light, .dark] {
+            for scheme in Self.bandsTheSweepMustCover {
                 let found = try separation(of: pair, in: scheme)
-                measured += 1
+                measured.insert("\(pair.component)/\(scheme)")
                 if found.differing == 0 {
                     failures.append(
                         "\(pair.component) in \(scheme) renders its two states identically over all \(found.read) readable pixels, so the state is drawn nowhere"
@@ -214,33 +245,34 @@ final class HDSelectionSeparationTests: XCTestCase {
                 }
             }
         }
+        let extent = Self.extent()
         XCTAssertEqual(
-            measured, Self.statePairs().count * 2,
-            "the sweep measured \(measured) of the \(Self.statePairs().count * 2) component-and-band combinations it lists, so it is silent about the rest"
+            measured, extent,
+            "the sweep is silent about \(extent.subtracting(measured).sorted()) and measured \(measured.subtracting(extent).sorted()), which the extent does not name; the extent is the pinned list of components crossed with the two bands rather than a count the pair list produces, so removing a pair names the component it removed"
         )
         XCTAssertEqual(
             failures, [],
-            "\(failures.count) of \(measured) component-and-band combinations draw a state their neighbour is not separated from; the statistic that carries the verdict is separatedShare, the share of differing pixels reaching \(Self.wcagNonTextContrast):1, with a floor of \(String(format: "%.0f", Self.leastShareOfDifferingPixelsAMarkMustSeparate * 100))%, and best is only a second leg that catches a state drawn nowhere; \(Self.pairsWhoseSecondStateIsInactive.sorted()) are exempt from the floor because their second state is an inactive control, which 1.4.11 does not require to be separated: \(failures.joined(separator: " · "))"
+            "\(failures.count) of \(measured.count) component-and-band combinations draw a state their neighbour is not separated from; the statistic that carries the verdict is separatedShare, the share of differing pixels reaching \(Self.wcagNonTextContrast):1, with a floor of \(String(format: "%.0f", Self.leastShareOfDifferingPixelsAMarkMustSeparate * 100))%, and best is only a second leg that catches a state drawn nowhere; \(Self.pairsWhoseSecondStateIsInactive.sorted()) are exempt from the floor because their second state is an inactive control, which 1.4.11 does not require to be separated: \(failures.joined(separator: " · "))"
         )
     }
 
     func testTheSweepReportsTheNumbersItsVerdictRestsOn() throws {
-        var lines: [String] = []
+        var lines: [String: String] = [:]
         for pair in Self.statePairs() {
-            for scheme in [ColorScheme.light, .dark] {
+            for scheme in Self.bandsTheSweepMustCover {
                 let found = try separation(of: pair, in: scheme)
-                lines.append(
-                    "\(pair.component)/\(scheme): differing \(String(format: "%.2f", found.differingShare * 100))%, of those \(String(format: "%.1f", found.separatedShare * 100))% reach \(Self.wcagNonTextContrast):1, best \(String(format: "%.2f", found.best)):1"
-                )
+                lines["\(pair.component)/\(scheme)"] =
+                    "differing \(String(format: "%.2f", found.differingShare * 100))%, of those \(String(format: "%.1f", found.separatedShare * 100))% reach \(Self.wcagNonTextContrast):1, best \(String(format: "%.2f", found.best)):1"
                 XCTAssertGreaterThan(
                     found.read, 0,
                     "\(pair.component) in \(scheme) has no readable pixel at all, so every ratio above it is vacuous"
                 )
             }
         }
+        let extent = Self.extent()
         XCTAssertEqual(
-            lines.count, Self.statePairs().count * 2,
-            "the measurement table is \(lines.count) rows over \(Self.statePairs().count) components in two bands: \(lines.joined(separator: " · "))"
+            Set(lines.keys), extent,
+            "the measurement table is missing \(extent.subtracting(lines.keys).sorted()) and carries \(Set(lines.keys).subtracting(extent).sorted()) the extent does not name: \(lines.sorted { $0.key < $1.key }.map { "\($0.key): \($0.value)" }.joined(separator: " · "))"
         )
     }
 
@@ -260,37 +292,76 @@ final class HDSelectionSeparationTests: XCTestCase {
         }
     }
 
-    func testEveryComponentThatDrawsASelectionStateIsInTheSweep() throws {
-        let files = Self.sourceFiles()
-        XCTAssertGreaterThan(
-            files.count, Self.filesTheScanExpectsAtLeast,
-            "the scan found \(files.count) source files under \(Self.packagesDirectory().path), so it read nothing and cannot say the sweep is complete"
+    private static func packageHolding(_ file: URL, under root: URL) -> String {
+        let depth = root.standardizedFileURL.pathComponents.count
+        let components = file.standardizedFileURL.pathComponents
+        guard components.count > depth else { return file.lastPathComponent }
+        return components[depth]
+    }
+
+    private static func captures(of pattern: String, in text: String, groups: Int) -> [[String]] {
+        guard let expression = try? NSRegularExpression(pattern: pattern) else { return [] }
+        return expression
+            .matches(in: text, range: NSRange(text.startIndex..<text.endIndex, in: text))
+            .map { match in
+                (1...groups).map { group in
+                    guard let found = Range(match.range(at: group), in: text) else { return "" }
+                    return String(text[found])
+                }
+            }
+    }
+
+    private static func typesDeclaringTheMark(in text: String) -> Set<String> {
+        Set(
+            captures(of: conformanceDeclaration, in: text, groups: 2)
+                .filter { capture in
+                    capture[1]
+                        .components(separatedBy: CharacterSet(charactersIn: ",&"))
+                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                        .contains(nameOfTheMarkTheFamilyIsKeyedOn)
+                }
+                .map { $0[0] }
         )
-        let swept = Set(Self.statePairs().map(\.component))
+    }
+
+    func testEveryTypeDeclaringTheMarkIsInTheSweepAndTheScanReadsTheWholeTree() throws {
+        let root = Self.packagesDirectory()
+        let files = Self.sourceFiles()
+        var tally: [String: Int] = [:]
+        for file in files { tally[Self.packageHolding(file, under: root), default: 0] += 1 }
+        XCTAssertEqual(
+            tally, Self.swiftFilesUnderEachPackagesSources,
+            "the scan walked \(root.path) and found \(tally.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }) rather than \(Self.swiftFilesUnderEachPackagesSources.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }), so it is reading a different tree from the one this sweep claims to cover; these are pinned counts rather than a floor, so a tree that grows is an edit someone makes here on purpose"
+        )
+
         var declared: Set<String> = []
-        var uncovered: [String] = []
+        var family: Set<String> = []
         for file in files {
             guard let text = try? String(contentsOf: file, encoding: .utf8) else { continue }
-            let types = Set(
-                text.components(separatedBy: "struct ")
-                    .dropFirst()
-                    .compactMap { $0.prefix(while: { $0.isLetter || $0.isNumber || $0 == "_" }) }
-                    .map(String.init)
-                    .filter { !$0.isEmpty }
-            )
-            declared.formUnion(types)
-            guard text.contains("accessibilityAddTraits"), text.contains(Self.traitTheScanTreatsAsASelectionState) else { continue }
-            if types.isDisjoint(with: swept) {
-                uncovered.append("\(file.lastPathComponent) declares \(types.sorted()) and none of them is swept")
-            }
+            declared.formUnion(Self.captures(of: Self.typeDeclaration, in: text, groups: 1).map { $0[0] })
+            family.formUnion(Self.typesDeclaringTheMark(in: text))
         }
+        XCTAssertFalse(
+            family.isEmpty,
+            "no type under \(root.lastPathComponent) declares \(Self.nameOfTheMarkTheFamilyIsKeyedOn), so either the mark was renamed out from under this scan or the scan read nothing"
+        )
+
+        let swept = Set(Self.statePairs().map(\.component))
         XCTAssertEqual(
-            uncovered, [],
-            "\(uncovered.count) source files add the \(Self.traitTheScanTreatsAsASelectionState) trait and no type they declare is in the sweep, so a component has a selection state nothing measures: \(uncovered.joined(separator: " · "))"
+            family.subtracting(swept).subtracting(Self.marksNoPairOfRenderingsCanIsolate).sorted(), [],
+            "\(family.subtracting(swept).subtracting(Self.marksNoPairOfRenderingsCanIsolate).sorted()) declare \(Self.nameOfTheMarkTheFamilyIsKeyedOn) and no pair of renderings measures them, so a drawn state reaches a person that nothing reads; the key here is the declaring type rather than the file it sits in or the modifier it announces with, so a second marked type in an already-swept file is a second row of work"
         )
         XCTAssertEqual(
-            swept.subtracting(declared), [],
-            "the sweep names \(swept.subtracting(declared).sorted()), which no source file under \(Self.packagesDirectory().lastPathComponent) declares, so the sweep is measuring a name rather than a component"
+            swept.subtracting(family).sorted(), [],
+            "the sweep renders \(swept.subtracting(family).sorted()), which this scan does not see declaring \(Self.nameOfTheMarkTheFamilyIsKeyedOn) although the compiler required it of every pair, so the scan's reading of a declaration disagrees with the compiler's and its silence elsewhere means nothing"
+        )
+        XCTAssertEqual(
+            Self.componentsTheSweepMustCover.subtracting(declared).sorted(), [],
+            "the extent names \(Self.componentsTheSweepMustCover.subtracting(declared).sorted()), which no type under \(root.lastPathComponent) declares, so the extent is pinning a spelling rather than a component"
+        )
+        XCTAssertEqual(
+            Self.marksNoPairOfRenderingsCanIsolate.subtracting(family).sorted(), [],
+            "\(Self.marksNoPairOfRenderingsCanIsolate.subtracting(family).sorted()) are excused from the sweep and no longer declare \(Self.nameOfTheMarkTheFamilyIsKeyedOn), so the excuse outlived the thing it excused"
         )
     }
 }

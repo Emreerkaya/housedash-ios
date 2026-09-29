@@ -30,7 +30,7 @@ public enum HDNesterTab: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-public struct HDTabBarNester: View {
+public struct HDTabBarNester: View, HDDrawsAStateMark {
     public let active: HDNesterTab
     public let onSelect: (HDNesterTab) -> Void
 

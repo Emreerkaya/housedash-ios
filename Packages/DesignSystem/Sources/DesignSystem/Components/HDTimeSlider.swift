@@ -19,7 +19,7 @@ public enum HDTimeSliderValue: Sendable, Equatable {
     }
 }
 
-public struct HDTimeSlider: View {
+public struct HDTimeSlider: View, HDDrawsAStateMark {
     public static let size = CGSize(width: 353, height: 104)
     public static let defaultBounds = 6 * 60...22 * 60
     public static let thumbTapTarget: CGFloat = 44

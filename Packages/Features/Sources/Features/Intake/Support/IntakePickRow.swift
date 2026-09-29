@@ -1,7 +1,7 @@
 import DesignSystem
 import SwiftUI
 
-struct IntakePickRow: View {
+struct IntakePickRow: View, HDDrawsAStateMark {
     static let horizontalPadding: CGFloat = 18
 
     static func stacks(at size: DynamicTypeSize) -> Bool {

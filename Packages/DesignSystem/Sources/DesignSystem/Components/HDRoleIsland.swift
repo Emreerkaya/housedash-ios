@@ -30,7 +30,7 @@ struct HDRoleIslandTapExpansion: Shape {
     }
 }
 
-public struct HDRoleIsland: View {
+public struct HDRoleIsland: View, HDDrawsAStateMark {
     public static let size = CGSize(width: 186, height: 38)
     public static let thumbInset: CGFloat = 3
     public static let halfWidth: CGFloat = (size.width - thumbInset * 2) / 2
