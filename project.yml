@@ -60,6 +60,18 @@ targets:
       - target: HouseDash
       - package: DesignSystem
 
+  HouseDashUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: HouseDashUITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.housedash.app.uitests
+        GENERATE_INFOPLIST_FILE: "YES"
+    dependencies:
+      - target: HouseDash
+
 schemes:
   HouseDash:
     build:
@@ -72,3 +84,13 @@ schemes:
       config: Debug
       targets:
         - HouseDashTests
+
+  HouseDashUITests:
+    build:
+      targets:
+        HouseDash: all
+        HouseDashUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - HouseDashUITests

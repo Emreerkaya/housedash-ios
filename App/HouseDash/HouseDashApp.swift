@@ -9,7 +9,7 @@ struct HouseDashApp: App {
     var body: some Scene {
         WindowGroup {
             if authenticatedRole != nil {
-                HDRootTabView()
+                HDRootTabView(problemCatalogue: Self.makeProblemCatalogue())
             } else {
                 AuthFlowScreen(identityService: Self.makeIdentityService()) { role in
                     authenticatedRole = role
@@ -23,6 +23,14 @@ struct HouseDashApp: App {
         FixtureIdentityService()
         #else
         UnavailableIdentityService()
+        #endif
+    }
+
+    private static func makeProblemCatalogue() -> ProblemCatalogue {
+        #if DEBUG
+        FixtureProblemCatalogue()
+        #else
+        UnavailableProblemCatalogue()
         #endif
     }
 }

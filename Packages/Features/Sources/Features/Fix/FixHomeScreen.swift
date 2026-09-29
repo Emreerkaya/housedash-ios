@@ -2,29 +2,36 @@ import SwiftUI
 import DesignSystem
 
 public struct FixHomeScreen: View {
-    public init() {}
+    @State private var model: IntakeFlowModel
+
+    public init(problemCatalogue: ProblemCatalogue) {
+        _model = State(initialValue: IntakeFlowModel(catalogue: problemCatalogue))
+    }
 
     public var body: some View {
         HDTabScreen(tab: .fix) {
-            HDScreen {
-                HDItemStack {
-                    HDText("Fix", style: HDType.titleLarge)
-                    HDText(
-                        "Tell us what broke and we will give you both the do-it-yourself guide and the nearby people who can take it off your hands.",
-                        style: HDType.body,
-                        color: .hdInkSoft
-                    )
-                }
-
-                HDItemStack {
-                    HDText("Start a new case", style: HDType.section)
-                    HDText(
-                        "Placeholder destination. The intake flow (H2A through H06) assembles here once its screens are built.",
-                        style: HDType.bodyDense,
-                        color: .hdInkFaint
-                    )
-                }
+            NavigationStack(path: $model.path) {
+                B01FixScreen(model: model)
+                    .navigationBarBackButtonHidden(true)
+                    .navigationDestination(for: IntakeRoute.self) { route in
+                        destination(for: route)
+                            .navigationBarBackButtonHidden(true)
+                    }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func destination(for route: IntakeRoute) -> some View {
+        switch route {
+        case .pickProblem:
+            B02PickProblemScreen(model: model)
+        case .describeIt(let symptom):
+            B03DescribeItScreen(model: model, symptom: symptom)
+        case .somethingElse:
+            B04SomethingElseScreen(model: model)
+        case .photograph:
+            B06PhotographItScreen(model: model)
         }
     }
 }
