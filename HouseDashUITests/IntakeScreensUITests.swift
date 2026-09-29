@@ -120,9 +120,15 @@ final class IntakeScreensUITests: XCTestCase {
         into field: XCUIElement,
         _ text: String
     ) {
-        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        XCTAssertTrue(
+            field.waitForExistence(timeout: 10),
+            "the field to type into never appeared, so nothing below measured anything"
+        )
         let cta = app.buttons["action-bar-cta"]
-        XCTAssertTrue(cta.waitForExistence(timeout: 10))
+        XCTAssertTrue(
+            cta.waitForExistence(timeout: 10),
+            "the action bar CTA never appeared, so the scroll below has nothing to scroll the field clear of"
+        )
 
         var attempts = 0
         while field.frame.maxY > cta.frame.minY && attempts < 6 {
@@ -166,7 +172,10 @@ final class IntakeScreensUITests: XCTestCase {
 
     private func reachPickTheProblem(_ app: XCUIApplication) {
         let drippingTapCard = app.buttons["Dripping tap, $90–140"]
-        XCTAssertTrue(drippingTapCard.waitForExistence(timeout: 10))
+        XCTAssertTrue(
+            drippingTapCard.waitForExistence(timeout: 10),
+            "the Dripping tap card is not on B01, so the rest of this flow cannot start"
+        )
         safeTap(drippingTapCard)
         settle()
         XCTAssertTrue(app.staticTexts["Pick the problem"].waitForExistence(timeout: 10))
@@ -181,7 +190,10 @@ final class IntakeScreensUITests: XCTestCase {
         settle()
 
         let cta = app.buttons["Next"]
-        XCTAssertTrue(cta.waitForExistence(timeout: 10))
+        XCTAssertTrue(
+            cta.waitForExistence(timeout: 10),
+            "there is no Next button on B02 to sweep taps across"
+        )
         let screenWidth = app.windows.firstMatch.frame.width
         let pillMidY = cta.frame.midY
         let sweep: [CGFloat] = [
@@ -214,7 +226,10 @@ final class IntakeScreensUITests: XCTestCase {
         reachPickTheProblem(app)
 
         let disabled = app.buttons["Next, pick a problem first"]
-        XCTAssertTrue(disabled.waitForExistence(timeout: 10))
+        XCTAssertTrue(
+            disabled.waitForExistence(timeout: 10),
+            "Next is not announced as disabled with nothing selected, so its label no longer says why"
+        )
         XCTAssertFalse(disabled.isEnabled, "Next is tappable with nothing selected, so it is a silent no-op")
         attach(app, named: "B02-cta-disabled")
 
@@ -289,7 +304,10 @@ final class IntakeScreensUITests: XCTestCase {
         )
 
         let addPhotoTiles = app.buttons.matching(identifier: "photo-add-tile")
-        XCTAssertGreaterThan(addPhotoTiles.count, 0)
+        XCTAssertGreaterThan(
+            addPhotoTiles.count, 0,
+            "B03 offers no add-photo tile, so the camera is unreachable from the description step"
+        )
         addPhotoTiles.firstMatch.tap()
         settle()
         XCTAssertTrue(app.staticTexts["Photograph it"].waitForExistence(timeout: 10))
@@ -466,5 +484,48 @@ final class IntakeScreensUITests: XCTestCase {
         app.buttons["Photo"].tap()
         settle()
         assertIsAHeading(app.staticTexts["Show us the problem"], "the camera navigation title on B05")
+    }
+
+    func testEveryTabRespondsToATapAnywhereAcrossTheSlotItDraws() throws {
+        let app = launch()
+        reachTheTabRootWithoutTyping(app)
+
+        let roots = [
+            ("Jobs", "Jobs"),
+            ("DIY", "Toolbox"),
+            ("Profile", "Profile"),
+            ("Photo", "Show us the problem")
+        ]
+        let offsets: [CGFloat] = [0.06, 0.25, 0.5, 0.75, 0.94]
+
+        for (tab, heading) in roots {
+            for offset in offsets {
+                let fix = app.buttons["Fix"]
+                XCTAssertTrue(fix.waitForExistence(timeout: 10), "the Fix tab is gone, so this sweep cannot return to a known screen")
+                fix.tap()
+                settle()
+                XCTAssertTrue(
+                    app.staticTexts["What needs fixing?"].waitForExistence(timeout: 6),
+                    "tapping Fix did not return to B01, so the next assertion cannot tell a dead tap from a stale screen"
+                )
+
+                let button = app.buttons[tab]
+                XCTAssertTrue(button.waitForExistence(timeout: 6), "the \(tab) tab is not on screen")
+                let index = try XCTUnwrap(Self.tabBarLabels.firstIndex(of: tab))
+                let slotWidth = app.windows.firstMatch.frame.width / CGFloat(Self.tabBarLabels.count)
+                let x = slotWidth * (CGFloat(index) + offset)
+                XCTAssertLessThanOrEqual(
+                    button.frame.width, slotWidth + 1,
+                    "the \(tab) button reports a frame wider than the \(slotWidth)pt slot it is drawn in, so the sweep below is aiming outside the bar"
+                )
+                tap(app, x: x, y: button.frame.midY)
+                settle()
+                XCTAssertTrue(
+                    app.staticTexts[heading].waitForExistence(timeout: 6),
+                    "a tap \(Int(offset * 100))% across the \(tab) slot, at x=\(x) y=\(button.frame.midY), landed on the drawn tab bar and nothing happened; the \(tab) button reports a \(button.frame.width)pt frame in a \(slotWidth)pt slot"
+                )
+            }
+        }
+        attach(app, named: "tab-bar-tap-sweep-complete")
     }
 }
