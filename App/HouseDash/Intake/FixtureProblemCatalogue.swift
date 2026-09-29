@@ -103,11 +103,11 @@ struct FixtureProblemCatalogue: ProblemCatalogue {
             secondary: "Cartridge",
             priceRange: "$80–130"
         ),
-        SymptomOption(id: "none-of-these", primary: "None of these", secondary: "Describe it yourself", priceRange: nil)
+        SymptomOption.ownWords(id: "none-of-these", primary: "None of these", secondary: "Describe it yourself")
     ]
 
     private static let escapeHatchOnly: [SymptomOption] = [
-        SymptomOption(id: "none-of-these", primary: "None of these", secondary: "Describe it yourself", priceRange: nil)
+        SymptomOption.ownWords(id: "none-of-these", primary: "None of these", secondary: "Describe it yourself")
     ]
 
     func rails(for room: HDRoom) async throws -> [ProblemRail] {
