@@ -20,7 +20,7 @@ public enum HDPalette {
         .locked: HDColorPair(light: "#C7C0BA", dark: "#4D4845"),
         .accentDIY: HDColorPair(light: "#936725", dark: "#DDAA69"),
         .accentHire: HDColorPair(light: "#5B6DA7", dark: "#A2B1EC"),
-        .alert: HDColorPair(light: "#BC3F3D", dark: "#F27A72"),
+        .alert: HDColorPair(light: "#98383C", dark: "#F28472"),
         .held: HDColorPair(light: "#6B7074", dark: "#A0A7AC"),
         .verified: HDColorPair(light: "#326441", dark: "#74A981"),
         .onAccent: HDColorPair(light: "#F7F3F0", dark: "#25211E"),
