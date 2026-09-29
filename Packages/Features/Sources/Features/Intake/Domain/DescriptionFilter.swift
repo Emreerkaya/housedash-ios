@@ -60,16 +60,17 @@ public struct Description: Sendable, Equatable {
 }
 
 public enum DescriptionFilter {
-    private static let nanpPhone = try! NSRegularExpression(
-        pattern: #"(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b"#
+    private static let groupedNANPPhone = try! NSRegularExpression(
+        pattern: #"(?:\+?1[-.\s]?)?\(?(?<!\d)\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}(?!\d)"#
     )
-    private static let bareLongDigitRun = try! NSRegularExpression(pattern: #"\d{9,15}"#)
     private static let email = try! NSRegularExpression(
-        pattern: #"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"#
+        pattern: #"[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63})*\.[A-Za-z]{2,24}(?![A-Za-z])"#
     )
-    private static let cashtag = try! NSRegularExpression(pattern: #"\$[A-Za-z][A-Za-z0-9_]{1,14}\b"#)
+    private static let cashtag = try! NSRegularExpression(
+        pattern: #"(?<![A-Za-z0-9])\$[A-Za-z][A-Za-z0-9_]{1,14}\b"#
+    )
     private static let paymentLink = try! NSRegularExpression(
-        pattern: #"(?:cash\.app|venmo\.com|paypal\.me)/\S+"#,
+        pattern: #"\b(?:cash\.app|venmo\.com|paypal\.me)/\S+"#,
         options: .caseInsensitive
     )
 
@@ -78,7 +79,7 @@ public enum DescriptionFilter {
         if matches(email, in: text) {
             found.append(.emailAddress)
         }
-        if matches(nanpPhone, in: text) || matches(bareLongDigitRun, in: text) {
+        if matches(groupedNANPPhone, in: text) {
             found.append(.phoneNumber)
         }
         if matches(cashtag, in: text) || matches(paymentLink, in: text) {
