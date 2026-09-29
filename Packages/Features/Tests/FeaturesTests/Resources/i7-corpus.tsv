@@ -57,10 +57,10 @@ ACCEPT	ACCEPT		quotes were 1,500, 2,300, 3,100	the [2,3,2,3] thousands-list regr
 ACCEPT	ACCEPT		12,000, 18,000	the [2,3,2,3] thousands-list regression; closed by the exchange-and-line rule
 ACCEPT	ACCEPT		1,000, 2,500, 10,000	the [2,3,2,3] thousands-list regression; closed by the exchange-and-line rule
 ACCEPT	ACCEPT		1,500; 2,300; 3,100	the [2,3,2,3] thousands-list regression; closed by the exchange-and-line rule
-ACCEPT	REJECT	PhoneNumber	100, 150, 2000 mm	the [2,3,2,3] thousands-list regression; ACCEPT at 458c134
+ACCEPT	REJECT	PhoneNumber	100, 150, 2000 mm	a [3,3,4] quantity list, not the [2,3,2,3] thousands-list class it was filed under; ACCEPT at 458c134
 ACCEPT	ACCEPT		1,200, 1,800, 2,400	the [2,3,2,3] thousands-list regression; closed by the exchange-and-line rule
 ACCEPT	ACCEPT		12,000, 18,000, 24,000	the [2,3,2,3] thousands-list regression; closed by the exchange-and-line rule
-ACCEPT	ACCEPT		Radiator widths:\n300\n450\n600	the [2,3,2,3] thousands-list regression; closed by the exchange-and-line rule
+ACCEPT	ACCEPT		Radiator widths:\n300\n450\n600	a [3,3,3] quantity list, not the [2,3,2,3] thousands-list class it was filed under; closed by the exchange-and-line rule
 ACCEPT	ACCEPT		Radiator sizes are 600 1200 1800 mm across the flat here	three-digit metric run; was pinned as a known cost, closed by the exchange-and-line rule
 ACCEPT	ACCEPT		Worktop depths 300 600 900 mm and the sink is undermount	three-digit metric run; was pinned as a known cost, closed by the exchange-and-line rule
 ACCEPT	ACCEPT		Tile sizes 200 300 400 600 needed for the bathroom floor	three-digit metric run; was pinned as a known cost, closed by the exchange-and-line rule
@@ -110,10 +110,10 @@ REJECT	ACCEPT		Kitchen tap drips from the base, reach me on 917x555x0199 this we
 QUESTION	REJECT	PaymentLink	I paid with apple pay last time and it went through fine	ordinary payment history, rejected as a PaymentLink; whether this is a false positive is an owner decision
 QUESTION	ACCEPT		I am at 350 E 62nd St #4B, buzzer 12, come by any evening	whether a street address is a contact detail under I7; the product gives the exact address after booking
 QUESTION	ACCEPT		I can pay you directly in cash outside the app if that is easier	not a contact detail, but an explicit offer to leave the platform; I7's wording covers the channel, not only the address
-REJECT	REJECT	PhoneNumber	Water pours through the ceiling on the landing, 917。555。0199 is my cell	closed by asking what a separator is rather than listing them: anything that is neither a letter nor a digit nor one of the three marks the thousands arm owns
+REJECT	REJECT	PhoneNumber	Water pours through the ceiling on the landing, 917。555。0199 is my cell	closed by asking what a separator is rather than listing them: anything that is neither a letter nor a digit
 REJECT	REJECT	PhoneNumber	Water pours through the ceiling on the landing, 917｡555｡0199 is my cell	closed by the same rule; U+FF61 folds to U+3002 under NFKD
-REJECT	REJECT	PhoneNumber	Water pours through the ceiling below, my cell is ❹❶❼ ❺❺❺ ❶❹❹	closed by asking unicode what a digit is: any character whose numeric value is nought to nine stands for that digit, which reaches all 180 such characters in the basic plane rather than the one family a table would have listed
-REJECT	REJECT	PhoneNumber	Water pours through the ceiling below, my cell is ⓽⓵⓻ ⓹⓹⓹ ⓵⓽⓽	closed by the same rule; these have no NFKD decomposition, so the previous claim that circled digits were caught was true of U+2460 alone
+REJECT	ACCEPT		Water pours through the ceiling below, my cell is ❹❶❼ ❺❺❺ ❶❹❹	closed by asking unicode what a digit is: any character whose numeric value is nought to nine stands for that digit, which reaches all 180 such characters in the basic plane rather than the one family a table would have listed; reopened by the ten-digit floor on the cue arm, a cued nine-digit run, and the measured cost of closing eleven ordinary sentences
+REJECT	ACCEPT		Water pours through the ceiling below, my cell is ⓽⓵⓻ ⓹⓹⓹ ⓵⓽⓽	closed by the same rule; these have no NFKD decomposition, so the previous claim that circled digits were caught was true of U+2460 alone; reopened by the ten-digit floor on the cue arm, a cued nine-digit run, and the measured cost of closing eleven ordinary sentences
 REJECT	ACCEPT		Water pours through the ceiling below, 020 7946 0958 is my landline	a UK landline; the uncued arm's dialable is exactly ten digits while PHONE_DIGIT_COUNT claims 9..15
 REJECT	REJECT	PhoneNumber	Water pours through the ceiling below, 07700 900 123 is my number	a UK mobile, eleven digits
 REJECT	REJECT	PhoneNumber	Water pours through the ceiling below, 1917 555 0199 is my cell	an eleven-digit domestic run with a country prefix and no plus
@@ -121,7 +121,7 @@ REJECT	REJECT	PhoneNumber	Water pours through the ceiling below, 001 212 555 123
 REJECT	REJECT	PhoneNumber	Water pours through the ceiling below, my cell is 917*555*0199	closed by the separator rule, along with the ten other punctuation spellings the enumerated table did not list
 REJECT	ACCEPT		Water pours through the ceiling below, write to bob@mail,ru for the photos	the comma-for-a-dot arm is restricted to a common-TLD list, and the list is unmeasured
 REJECT	REJECT	EmailAddress	Water pours through the ceiling below, write to bobby at yahoo·com about it	closed by giving the worded-at arm the dot vocabulary the domain arm already had
-ACCEPT	REJECT	PhoneNumber	boiler serial 1 234 567 890 is on the plate behind the panel	space is the SI thousands separator; the bare form is accepted and pinned, this one is not
+ACCEPT	ACCEPT		boiler serial 1 234 567 890 is on the plate behind the panel	D268; closed by gating the stray-digit arm on the words that name a number as something else
 ACCEPT	REJECT	PhoneNumber	We counted 8 200 300 400 mm lengths of skirting in the hall here	a size list with a count in front; the same list without the count is accepted
 ACCEPT	REJECT	PhoneNumber	the quote came to 1 250 000 000 lira for the whole block here	a large sum written with SI separators
 REJECT	REJECT	EmailAddress	Kitchen tap drips from the base, email me at bob@gmail.com for photos	an EmailAddress at a length that reaches Description.of
@@ -139,3 +139,34 @@ REJECT	REJECT	EmailAddress PhoneNumber	Kitchen tap drips, call me on 917,555,019
 ACCEPT	ACCEPT		Kitchen tap drips from the base, reach me on 917‍555‍0199 today	U+200D between digit groups; the guard strips it as a format character and then behaves exactly as it does on the bare run, which is the accepted gap above. The layer that refuses this is the plain-text rule, asserted by name because no corpus column can carry it
 ACCEPT	ACCEPT		Kitchen tap drips from the base, reach me on 917​555​0199 today	U+200B between digit groups, refused by the plain-text rule rather than by the filter, and the guard is right to accept what it is shown
 REJECT	REJECT	PaymentLink	Water pours through the ceiling below, sort code 31-27-00 on the statement	bank coordinates named by their own word, at a length that reaches Description.of
+ACCEPT	ACCEPT		call me when the 300 600 900 mm boards arrive please	D256; a cue word within the window enables the whole grouped arm, so ordinary repair text is refused; closed by the ten-digit floor on the cue arm
+ACCEPT	ACCEPT		the ring main sockets are 100 150 200 cm from the floor	D256; a cue word within the window enables the whole grouped arm, so ordinary repair text is refused; closed by the ten-digit floor on the cue arm
+ACCEPT	ACCEPT		the o-rings I need are 100 150 200 mm for the three valves	D256; a cue word within the window enables the whole grouped arm, so ordinary repair text is refused; closed by the ten-digit floor on the cue arm
+ACCEPT	ACCEPT		the walls are 100 150 200 mm thick so mobile signal is weak	D256; a cue word within the window enables the whole grouped arm, so ordinary repair text is refused; closed by the ten-digit floor on the cue arm
+ACCEPT	REJECT	PhoneNumber	three radiators, 600 1200 1800 mm, call ahead please	D256; a cue word within the window enables the whole grouped arm, so ordinary repair text is refused
+ACCEPT	ACCEPT		the error text says 120 150 180 on the boiler display	D256; a cue word within the window enables the whole grouped arm, so ordinary repair text is refused; closed by the ten-digit floor on the cue arm
+ACCEPT	ACCEPT		the call out fees were 100 150 200 from three firms	D256; a cue word within the window enables the whole grouped arm, so ordinary repair text is refused; closed by the ten-digit floor on the cue arm
+ACCEPT	ACCEPT		each battery cell reads 100 150 200 on the tester	D256; a cue word within the window enables the whole grouped arm, so ordinary repair text is refused; closed by the ten-digit floor on the cue arm
+ACCEPT	ACCEPT		the label text reads 100 150 200 on the side of the pump	D256; a cue word within the window enables the whole grouped arm, so ordinary repair text is refused; closed by the ten-digit floor on the cue arm
+ACCEPT	ACCEPT		the phone line runs 100 150 200 mm behind the plaster board	D256; a cue word within the window enables the whole grouped arm, so ordinary repair text is refused; closed by the ten-digit floor on the cue arm
+ACCEPT	ACCEPT		the telephone socket sits 100 150 200 mm above the skirting	D256; a cue word within the window enables the whole grouped arm, so ordinary repair text is refused; closed by the ten-digit floor on the cue arm
+ACCEPT	ACCEPT		the tel cupboard holds 100 150 200 mm of trunking in there	D256; a cue word within the window enables the whole grouped arm, so ordinary repair text is refused; closed by the ten-digit floor on the cue arm
+REJECT	REJECT	PhoneNumber	call me on 9175550199 about the leak	D256; a cued bare keypad run, the arm the cue list exists for
+REJECT	REJECT	PhoneNumber	my cell is 917 555 0199 please ring	D256; a cued ten-digit grouping, the shape the cue arm must keep
+REJECT	REJECT	PhoneNumber	ring me on 020 7946 0958 tomorrow morning	D256; a cued eleven-digit landline, found only through the cue
+REJECT	REJECT	PhoneNumber	text me on 917 555 0199 when you arrive	D256; a cued ten-digit grouping after a second cue word
+REJECT	REJECT	PhoneNumber	9.1.7.5.5.5.0.1.9.9 is my cell, please ring about the leaking radiator	D263; one digit to a separator, spelled with a mark the second separator table never held (full stop); closed by one separator rule for every arm
+REJECT	REJECT	PhoneNumber	9/1/7/5/5/5/0/1/9/9 is my cell, please ring about the leaking radiator	D263; one digit to a separator, spelled with a mark the second separator table never held (solidus); closed by one separator rule for every arm
+REJECT	REJECT	PhoneNumber	9#1#7#5#5#5#0#1#9#9 is my cell, please ring about the leaking radiator	D263; one digit to a separator, spelled with a mark the second separator table never held (number sign); closed by one separator rule for every arm
+REJECT	REJECT	PhoneNumber	9。1。7。5。5。5。0。1。9。9 is my cell, please ring about the leaking radiator	D263; one digit to a separator, spelled with a mark the second separator table never held (ideographic full stop); closed by one separator rule for every arm
+REJECT	REJECT	PhoneNumber	9•1•7•5•5•5•0•1•9•9 is my cell, please ring about the leaking radiator	D263; one digit to a separator, spelled with a mark the second separator table never held (bullet); closed by one separator rule for every arm
+REJECT	REJECT	PhoneNumber	9,1,7,5,5,5,0,1,9,9 is my cell, please ring about the leaking radiator	D263, D265; one digit to a mark the thousands arm owns, the comma question asked of this arm (comma); closed by one separator rule for every arm
+REJECT	REJECT	PhoneNumber	9;1;7;5;5;5;0;1;9;9 is my cell, please ring about the leaking radiator	D263, D265; one digit to a mark the thousands arm owns, the comma question asked of this arm (semicolon); closed by one separator rule for every arm
+REJECT	REJECT	PhoneNumber	9:1:7:5:5:5:0:1:9:9 is my cell, please ring about the leaking radiator	D263, D265; one digit to a mark the thousands arm owns, the comma question asked of this arm (colon); closed by one separator rule for every arm
+ACCEPT	ACCEPT		replace washers 1, 2, 3, 4, 5, 6, 7, 8, 9 in that order please now	D265; the cost of reading one mark to a digit, kept because the mark is followed by a space and the mark plus the space is not one mark
+REJECT	REJECT	PhoneNumber	replace washers 1 2 3 4 5 6 7 8 9 in that order please now	D265; the space spelled twin of the row above, rejected and pinned as desired
+REJECT	ACCEPT		🄊🄂🄈 🄆🄆🄆 🄁🄂🄊🄊 is my cell, ring about the leak	D264; comma-bearing digit shapes decompose to plain ASCII and the marks are then not all the same, so this stays open
+ACCEPT	ACCEPT		the meter reading was 1 234 567 890 when I looked this morning	D268; closed by the same gate, which retires the claim that this cost could not be narrowed
+ACCEPT	ACCEPT		Radiator widths in the hall are 100 200 300 3 mm across the flat	D268; closed by the same gate, the word flat naming the number as something else
+ACCEPT	REJECT	PhoneNumber	the quote came to 1 250 000 000 lira for the whole block here	D268; one of the four rows the SI residual is now, no word around it names the number as anything
+REJECT	ACCEPT		call me on 𝋩𝋡𝋧𝋥𝋥𝋥𝋠𝋡𝋩𝋩 about the leak under the sink here	D264; the digit fold reads a UTF-16 code unit, so 334 supplementary code points with a digit value are not folded, and this gap is pinned open rather than stated as a limit
