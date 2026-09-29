@@ -64,6 +64,36 @@ final class IntakeScreensUITests: XCTestCase {
         )
     }
 
+    private static let headerTraitBit: UInt64 = 65536
+    private static let headerHeightAtTheDefaultContentSize: CGFloat = 37.33
+    private static let shortestHeaderAnAccessibilitySizeDraws: CGFloat = 100
+
+    private func traitMask(_ element: XCUIElement) -> UInt64? {
+        (element.value(forKey: "traits") as? NSNumber)?.uint64Value
+    }
+
+    private func assertIsAHeading(_ element: XCUIElement, _ site: String) {
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "\(site) is not on screen at all")
+        guard let mask = traitMask(element) else {
+            return XCTFail("\(site) reports no trait mask, so no heading anywhere can be held to the trait")
+        }
+        XCTAssertEqual(
+            mask & Self.headerTraitBit, Self.headerTraitBit,
+            "\(site) reads traits=\(mask), which does not carry UIAccessibilityTraits.header"
+        )
+    }
+
+    private func assertIsNotAHeading(_ element: XCUIElement, _ site: String) {
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "\(site) is not on screen at all")
+        guard let mask = traitMask(element) else {
+            return XCTFail("\(site) reports no trait mask, so this test cannot fail in either direction")
+        }
+        XCTAssertEqual(
+            mask & Self.headerTraitBit, 0,
+            "\(site) reads traits=\(mask) and carries the header trait, so everything on the screen is a heading"
+        )
+    }
+
     private func attach(_ app: XCUIApplication, named name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name
@@ -228,6 +258,12 @@ final class IntakeScreensUITests: XCTestCase {
         attach(app, named: "A01-launch")
         reachTheTabRootWithoutTyping(app)
         attach(app, named: "B01-fix")
+
+        XCTAssertLessThan(
+            app.staticTexts["What needs fixing?"].frame.height,
+            Self.shortestHeaderAnAccessibilitySizeDraws,
+            "the B01 header is \(app.staticTexts["What needs fixing?"].frame.height)pt, so this run is not at the default content size and the pair of content-size passes is measuring one size twice"
+        )
         auditEveryCategory(app, on: "B01 at the default content size")
 
         reachPickTheProblem(app)
@@ -316,6 +352,12 @@ final class IntakeScreensUITests: XCTestCase {
         reachTheTabRootWithoutTyping(app)
         settle()
         attach(app, named: "AX5-B01-fix")
+
+        XCTAssertGreaterThan(
+            app.staticTexts["What needs fixing?"].frame.height,
+            Self.shortestHeaderAnAccessibilitySizeDraws,
+            "the B01 header is \(app.staticTexts["What needs fixing?"].frame.height)pt, and it is \(Self.headerHeightAtTheDefaultContentSize)pt at the default content size, so this run is not at an accessibility content size and nothing below measures one"
+        )
         auditEveryCategory(app, on: "B01 at the largest content size")
 
         for label in ["What needs fixing?", "Common in a kitchen", "Under $100", "Worth doing before winter"] {
@@ -381,5 +423,48 @@ final class IntakeScreensUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["A few details"].waitForExistence(timeout: 10))
         attach(app, named: "AX5-B07-a-few-details")
         auditEveryCategory(app, on: "B07 at the largest content size")
+    }
+
+    func testEveryHeadingSiteCarriesTheHeaderTrait() throws {
+        let app = launch()
+        reachTheTabRootWithoutTyping(app)
+
+        assertIsAHeading(app.staticTexts["What needs fixing?"], "HDHeader's title on B01")
+        assertIsAHeading(app.staticTexts["Common in a kitchen"], "HDGroupHeading on B01")
+        assertIsNotAHeading(app.staticTexts["Dripping tap"], "a rail card's title on B01")
+        assertIsNotAHeading(app.staticTexts["$90\u{2013}140"], "a rail card's price on B01")
+
+        reachPickTheProblem(app)
+        assertIsAHeading(app.staticTexts["Pick the problem"], "HDHeader's title on B02")
+
+        app.buttons["Drips constantly, Worse when the hot tap is on, $90\u{2013}140"].tap()
+        app.buttons["Next"].tap()
+        settle()
+        assertIsAHeading(app.staticTexts["Describe it"], "HDHeader's title on B03")
+        assertIsAHeading(app.staticTexts["Photos"], "HDGroupHeading on B03")
+
+        let addPhotoTiles = app.buttons.matching(identifier: "photo-add-tile")
+        addPhotoTiles.firstMatch.tap()
+        settle()
+        assertIsAHeading(app.staticTexts["Photograph it"], "the camera navigation title on B06")
+        app.buttons["Back"].tap()
+        settle()
+
+        type(app, into: app.textFields["What is it doing?"], "The tap drips whenever the hot side is on.")
+        app.buttons["See both ways to fix it"].tap()
+        settle()
+        settle()
+        assertIsAHeading(
+            app.staticTexts.matching(
+                NSPredicate(format: "label BEGINSWITH %@", "Case ready")
+            ).firstMatch,
+            "IntakeCaseReadyNotice's headline on B01"
+        )
+
+        app.buttons["Got it"].tap()
+        settle()
+        app.buttons["Photo"].tap()
+        settle()
+        assertIsAHeading(app.staticTexts["Show us the problem"], "the camera navigation title on B05")
     }
 }
