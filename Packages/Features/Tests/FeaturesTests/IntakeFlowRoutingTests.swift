@@ -119,6 +119,46 @@ final class IntakeFlowRoutingTests: XCTestCase {
         XCTAssertTrue(model.canConfirmSymptom)
     }
 
+    func testTheCTAIsNotEnabledForATapThatCannotRouteAndTheRefusalIsAnnounced() async {
+        let (model, _) = makeModel()
+        await model.selectProblem(FakeProblemCatalogue.drippingTap)
+        let symptom = FakeProblemCatalogue.drippingTapSymptoms[0]
+        model.selectSymptomForReview(symptom)
+        model.selectedProblem = nil
+
+        XCTAssertFalse(
+            model.canConfirmSymptom,
+            "the CTA is enabled for a symptom whose problem is gone, so the tap is a no-op behind a live button"
+        )
+        model.confirmSymptomSelection()
+        XCTAssertEqual(model.path, [.pickProblem(FakeProblemCatalogue.drippingTap)], "the tap moved the flow")
+        XCTAssertEqual(
+            model.announcement, IntakeFlowModel.theProblemThisOptionBelongsToIsGone,
+            "the refusal announced nothing, so a screen reader user taps and hears silence; every other refusal in this model announces"
+        )
+    }
+
+    func testNothingPickedAtAllIsAlsoAnnouncedRatherThanSwallowed() {
+        let (model, _) = makeModel()
+        XCTAssertFalse(model.canConfirmSymptom)
+        model.confirmSymptomSelection()
+        XCTAssertEqual(model.announcement, IntakeFlowModel.nothingIsPickedYet)
+        XCTAssertTrue(model.path.isEmpty)
+    }
+
+    func testAPlaceCannotReachASubmittedCaseWithoutPassingTheFilter() {
+        let refused = "917-555-0199 ask for Bob"
+        guard case .failure(.rejected(let rejection)) = Location.of(refused) else {
+            return XCTFail("\(refused) became a Location, so the only guard on Where is one caller remembering to call it")
+        }
+        XCTAssertEqual(rejection.signals, [.phoneNumber])
+        guard case .success(let place) = Location.of("  under the kitchen sink  ") else {
+            return XCTFail("an ordinary place was refused")
+        }
+        XCTAssertEqual(place.text, "under the kitchen sink")
+        XCTAssertEqual(Location.unspecified.text, "")
+    }
+
     func testTheDefaultCameraIsAbsentSoNoBuildCanFabricateAPhotoWithoutOne() {
         XCTAssertFalse(UnavailableCamera().isAvailable)
         XCTAssertNil(UnavailableCamera().capture(sequence: 1))
@@ -294,7 +334,7 @@ final class IntakeFlowRoutingTests: XCTestCase {
             model.locationText = place
             model.submit()
             XCTAssertNil(model.rejection, "'\(place)' is refused, so the filter is now refusing addresses")
-            XCTAssertEqual(model.completedSubmission?.location, place)
+            XCTAssertEqual(model.completedSubmission?.location.text, place)
             model.acknowledgeCompletion()
             await reachDescribeIt(model)
             model.descriptionText = "The tap drips from the base."

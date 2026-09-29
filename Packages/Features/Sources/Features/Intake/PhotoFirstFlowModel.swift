@@ -66,7 +66,7 @@ public final class PhotoFirstFlowModel {
         completedSubmission = IntakeSubmission(
             description: description,
             problem: nil,
-            location: "",
+            location: .unspecified,
             photos: photos
         )
         announcement = "Case ready"
