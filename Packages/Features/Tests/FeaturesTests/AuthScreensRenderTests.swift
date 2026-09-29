@@ -28,8 +28,6 @@ final class AuthScreensRenderTests: XCTestCase {
         return model
     }
 
-    // MARK: - The island appears on A02, A02T, A03, A03T only
-
     func testIslandIsAbsentOnA01() {
         let screen = A01ContinueScreen(model: makeModel())
         XCTAssertFalse(bodyTypeName(screen).contains("HDRoleIsland"))
@@ -55,8 +53,6 @@ final class AuthScreensRenderTests: XCTestCase {
         XCTAssertFalse(bodyTypeName(screen).contains("HDRoleIsland"))
     }
 
-    // MARK: - I9: the identifier is typed once and carried forward as an Identity row
-
     func testIdentifierCarriesForwardOntoWelcomeBack() {
         let screen = A02WelcomeBackScreen(model: makeModel(identifier: "dana@example.com"), knownRoles: [.nester])
         XCTAssertTrue(bodyTypeName(screen).contains("HDIdentityRow"))
@@ -76,8 +72,6 @@ final class AuthScreensRenderTests: XCTestCase {
         let screen = A05ResetPasswordScreen(model: makeModel())
         XCTAssertFalse(bodyTypeName(screen).contains("HDIdentityRow"))
     }
-
-    // MARK: - Dynamic Type to the largest accessibility size, nothing clipped
 
     func testA01GrowsInsteadOfClippingAtLargestAccessibilitySize() {
         let normal = measuredSize(A01ContinueScreen(model: makeModel()), dynamicTypeSize: .large)
@@ -123,8 +117,6 @@ final class AuthScreensRenderTests: XCTestCase {
         let huge = measuredSize(A05ResetPasswordScreen(model: makeModel()), dynamicTypeSize: .accessibility5)
         XCTAssertGreaterThan(huge.height, normal.height)
     }
-
-    // MARK: - 44pt targets on the controls this section adds
 
     func testForgotPasswordMeetsTheFortyFourPointTouchTarget() {
         let screen = A02WelcomeBackScreen(model: makeModel(), knownRoles: [.nester, .tasker])
