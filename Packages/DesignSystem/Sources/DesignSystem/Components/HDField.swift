@@ -50,6 +50,7 @@ public struct HDField<Accessory: View>: View {
                 }
                 .hdTypeStyle(HDType.body)
                 .foregroundStyle(Color.hdInk)
+                .accessibilityIdentifier(label)
                 Spacer(minLength: 0)
                 if let trailing {
                     HDText(trailing, style: HDType.label, color: .hdInkSoft)

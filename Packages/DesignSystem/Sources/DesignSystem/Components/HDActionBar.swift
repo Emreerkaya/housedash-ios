@@ -33,7 +33,7 @@ public struct HDActionBar: View {
             Button(action: action) {
                 HDText(ctaTitle, style: HDType.bodyStrong, color: .hdOnContext)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 52)
+                    .frame(minHeight: 52)
             }
             .buttonStyle(.plain)
             .background(Color.hdContext, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
