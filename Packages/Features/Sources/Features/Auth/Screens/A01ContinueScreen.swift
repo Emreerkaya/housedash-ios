@@ -44,7 +44,6 @@ public struct A01ContinueScreen: View {
                 legalLine
             }
         }
-        .background(Color.hdGround.ignoresSafeArea())
     }
 
     private var legalLine: some View {

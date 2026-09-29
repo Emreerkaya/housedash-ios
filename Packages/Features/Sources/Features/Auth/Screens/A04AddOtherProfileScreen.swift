@@ -31,7 +31,6 @@ public struct A04AddOtherProfileScreen: View {
                 }
             }
         }
-        .background(Color.hdGround.ignoresSafeArea())
     }
 
     var notNowButton: some View {

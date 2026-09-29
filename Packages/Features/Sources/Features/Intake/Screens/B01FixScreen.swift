@@ -31,7 +31,6 @@ struct B01FixScreen: View {
                 }
             }
         }
-        .background(Color.hdGround.ignoresSafeArea())
         .hdAnnounce(model.announcement) { model.acknowledgeAnnouncement() }
         .task(id: model.selectedRoom) {
             await model.loadRails()

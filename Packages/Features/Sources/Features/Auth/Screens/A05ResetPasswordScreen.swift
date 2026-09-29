@@ -37,6 +37,5 @@ public struct A05ResetPasswordScreen: View {
                 )
             }
         }
-        .background(Color.hdGround.ignoresSafeArea())
     }
 }

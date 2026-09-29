@@ -26,7 +26,6 @@ public struct HDRootTabView: View {
                     }
             }
         }
-        .tint(Color.hdInk)
     }
 
     static func drawsItsOwnTabBar(_ tab: HDNesterTab) -> Bool {

@@ -13,10 +13,10 @@ public struct PhotoHomeScreen<TabBar: View>: View {
     public var body: some View {
         NavigationStack(path: $model.path) {
             B05PhotoScreen(model: model, tabBar: tabBar)
-                .navigationBarBackButtonHidden(true)
+                .hdFlowScreen()
                 .navigationDestination(for: PhotoFirstRoute.self) { route in
                     destination(for: route)
-                        .navigationBarBackButtonHidden(true)
+                        .hdFlowScreen()
                 }
                 .overlay(alignment: .top) {
                     if let submission = model.completedSubmission {
