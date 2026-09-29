@@ -49,7 +49,6 @@ public struct HDTabBarNester: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(tab == active ? .isSelected : [])
-                .frame(maxWidth: .infinity)
             }
         }
     }
@@ -67,7 +66,7 @@ struct HDTabBarButtonAppearance: Equatable {
     }
 }
 
-private struct HDTabBarNesterButton: View {
+struct HDTabBarNesterButton: View {
     let tab: HDNesterTab
     let isActive: Bool
 
@@ -80,17 +79,30 @@ private struct HDTabBarNesterButton: View {
                 .frame(width: HDTabBarChromeMetrics.iconSize, height: HDTabBarChromeMetrics.iconSize)
                 .foregroundStyle(Color.hdInk)
                 .opacity(appearance.iconOpacity)
-            Text(tab.label)
-                .font(.system(size: 13, weight: appearance.labelWeight))
-                .tracking(-0.042)
-                .foregroundStyle(isActive ? Color.hdInk : Color.hdInkFaint)
+            HDText(
+                tab.label,
+                style: HDTabBarChromeMetrics.labelStyle(weight: appearance.labelWeight),
+                color: isActive ? .hdInk : .hdInkFaint,
+                singleLineMinimumScaleFactor: HDTabBarChromeMetrics.labelScaleFloor
+            )
         }
+        .padding(.horizontal, HDTabBarChromeMetrics.slotPadding)
+        .frame(maxWidth: .infinity, minHeight: HDTabBarChromeMetrics.minimumTouchTarget)
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 }
 
 enum HDTabBarChromeMetrics {
     static let iconSize: CGFloat = 24
+    static let minimumTouchTarget: CGFloat = 44
+    static let labelSize: CGFloat = 13
+    static let labelScaleFloor: CGFloat = 0.6
+    static let slotPadding: CGFloat = 2
+
+    static func labelStyle(weight: Font.Weight) -> HDTypeStyle {
+        HDTypeStyle(size: labelSize, weight: weight, tracking: -0.042)
+    }
 }
 
 struct HDTabBarChrome<Content: View>: View {

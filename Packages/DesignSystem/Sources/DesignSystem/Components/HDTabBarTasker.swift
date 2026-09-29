@@ -46,13 +46,12 @@ public struct HDTabBarTasker: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(tab == active ? .isSelected : [])
-                .frame(maxWidth: .infinity)
             }
         }
     }
 }
 
-private struct HDTabBarTaskerButton: View {
+struct HDTabBarTaskerButton: View {
     let tab: HDTaskerTab
     let isActive: Bool
 
@@ -65,11 +64,16 @@ private struct HDTabBarTaskerButton: View {
                 .frame(width: HDTabBarChromeMetrics.iconSize, height: HDTabBarChromeMetrics.iconSize)
                 .foregroundStyle(Color.hdInk)
                 .opacity(appearance.iconOpacity)
-            Text(tab.label)
-                .font(.system(size: 13, weight: appearance.labelWeight))
-                .tracking(-0.042)
-                .foregroundStyle(isActive ? Color.hdInk : Color.hdInkFaint)
+            HDText(
+                tab.label,
+                style: HDTabBarChromeMetrics.labelStyle(weight: appearance.labelWeight),
+                color: isActive ? .hdInk : .hdInkFaint,
+                singleLineMinimumScaleFactor: HDTabBarChromeMetrics.labelScaleFloor
+            )
         }
+        .padding(.horizontal, HDTabBarChromeMetrics.slotPadding)
+        .frame(maxWidth: .infinity, minHeight: HDTabBarChromeMetrics.minimumTouchTarget)
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 }
