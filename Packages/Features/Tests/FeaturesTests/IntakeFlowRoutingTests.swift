@@ -241,6 +241,20 @@ final class IntakeFlowRoutingTests: XCTestCase {
         XCTAssertEqual(model.photos.count, 1, "leaving the camera must not discard what was captured")
     }
 
+    func testAdoptingFromTheLibraryAddsAPhotoEvenWithNoCameraInThisBuild() {
+        let model = IntakeFlowModel(catalogue: FakeProblemCatalogue(), camera: FakeCamera(isAvailable: false))
+        model.adoptLibraryPhoto(identifier: "library-1")
+
+        XCTAssertEqual(model.photos.map(\.id), ["library-1"])
+    }
+
+    func testAdoptingFromTheLibraryRespectsTheThreePhotoCap() {
+        let (model, _) = makeModel()
+        for index in 0..<6 { model.adoptLibraryPhoto(identifier: "library-\(index)") }
+
+        XCTAssertEqual(model.photos.count, 3)
+    }
+
     func testCapturingMoreThanThreePhotosIsIgnoredBecauseTheStripHasThreeSlots() {
         let (model, _) = makeModel()
         model.capturePhoto()

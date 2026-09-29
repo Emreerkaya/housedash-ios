@@ -135,6 +135,16 @@ final class IntakeScreensUITests: XCTestCase {
         element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)).tap()
     }
 
+    private func dismissAnyLibraryPicker(_ app: XCUIApplication) {
+        let cancelBar = app.navigationBars.buttons["Cancel"]
+        let cancelPlain = app.buttons["Cancel"]
+        if cancelBar.waitForExistence(timeout: 4) {
+            cancelBar.tap()
+        } else if cancelPlain.waitForExistence(timeout: 4) {
+            cancelPlain.tap()
+        }
+    }
+
     private func tap(_ app: XCUIApplication, x: CGFloat, y: CGFloat) {
         app.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))
             .withOffset(CGVector(dx: x, dy: y))
@@ -360,12 +370,21 @@ final class IntakeScreensUITests: XCTestCase {
             "there is no flash affordance at all, so a sighted user sees a glyph with no explanation"
         )
 
+        let shutter = app.buttons["Take photo, camera unavailable"]
+        XCTAssertTrue(shutter.waitForExistence(timeout: 10), "the shutter announces no reason it cannot fire")
+        XCTAssertFalse(shutter.isEnabled, "this suite runs with no camera attached, so the shutter must not be live")
+
         let before = app.buttons.allElementsBoundByIndex.map { $0.label }.sorted()
-        app.buttons["Take photo"].tap()
+        shutter.tap()
         settle()
         let after = app.buttons.allElementsBoundByIndex.map { $0.label }.sorted()
-        XCTAssertNotEqual(before, after, "the shutter changed nothing a screen reader can observe")
-        attach(app, named: "B05-after-one-capture")
+        XCTAssertEqual(before, after, "a disabled shutter fabricated a photo")
+
+        XCTAssertTrue(
+            app.buttons["Add a photo from your library"].waitForExistence(timeout: 10),
+            "with no camera, the thumbnail is this build's only route to a photo and it is gone"
+        )
+        attach(app, named: "B05-shutter-disabled")
     }
 
     func testTheSevenIntakeScreensRenderAcrossBothFlows() throws {
@@ -449,20 +468,20 @@ final class IntakeScreensUITests: XCTestCase {
             attach(app, named: "\(band.rawValue)-B05-photo")
             auditEveryCategory(app, on: "\(band.rawValue) B05 at the default content size")
 
-            app.buttons["Take photo"].tap()
+            let libraryThumbnail = app.buttons["Add a photo from your library"]
+            XCTAssertTrue(
+                libraryThumbnail.waitForExistence(timeout: 10),
+                "with no photos captured yet, the thumbnail no longer opens the library picker"
+            )
+            libraryThumbnail.tap()
             settle()
-            app.buttons["Review 1 captured photos"].tap()
+            attach(app, named: "\(band.rawValue)-B05-library-picker")
+            dismissAnyLibraryPicker(app)
             settle()
-            XCTAssertTrue(app.staticTexts["A few details"].waitForExistence(timeout: 10))
-            attach(app, named: "\(band.rawValue)-B07-a-few-details")
-            auditEveryCategory(app, on: "\(band.rawValue) B07 at the default content size")
-
-            type(app, into: app.textFields["What is it doing?"], "Drips constantly from the tap.")
-            app.buttons["See both ways to fix it"].tap()
-            settle()
-            settle()
-            XCTAssertTrue(app.staticTexts["Show us the problem"].waitForExistence(timeout: 10))
-            attach(app, named: "\(band.rawValue)-B05-photo-with-completion-notice")
+            XCTAssertTrue(
+                app.staticTexts["Show us the problem"].waitForExistence(timeout: 10),
+                "cancelling the library picker did not return to B05"
+            )
         }
     }
 
@@ -536,14 +555,15 @@ final class IntakeScreensUITests: XCTestCase {
             attach(app, named: "\(band.rawValue)-AX5-B05-photo")
             auditEveryCategory(app, on: "\(band.rawValue) B05 at the largest content size")
 
-            app.buttons["Take photo"].tap()
+            let libraryThumbnail = app.buttons["Add a photo from your library"]
+            XCTAssertTrue(
+                libraryThumbnail.waitForExistence(timeout: 10),
+                "with no photos captured yet, the thumbnail no longer opens the library picker"
+            )
+            libraryThumbnail.tap()
             settle()
-            app.buttons["Review 1 captured photos"].tap()
-            settle()
-            settle()
-            XCTAssertTrue(app.staticTexts["A few details"].waitForExistence(timeout: 10))
-            attach(app, named: "\(band.rawValue)-AX5-B07-a-few-details")
-            auditEveryCategory(app, on: "\(band.rawValue) B07 at the largest content size")
+            attach(app, named: "\(band.rawValue)-AX5-B05-library-picker")
+            dismissAnyLibraryPicker(app)
         }
     }
 
@@ -588,6 +608,24 @@ final class IntakeScreensUITests: XCTestCase {
         app.buttons["Photo"].tap()
         settle()
         assertIsAHeading(app.staticTexts["Show us the problem"], "the camera navigation title on B05")
+    }
+
+    func testCameraPermissionDeniedShowsADesignedScreenWithASettingsRoute() throws {
+        let app = launch()
+        reachTheTabRootWithoutTyping(app)
+
+        app.buttons["Photo"].tap()
+        settle()
+
+        let denied = app.staticTexts["Camera access is off"]
+        guard denied.waitForExistence(timeout: 4) else {
+            throw XCTSkip(
+                "camera privacy was not pre-denied for this run (set it with xcrun simctl privacy <udid> deny camera com.housedash.app before this test)"
+            )
+        }
+        attach(app, named: "B05-permission-denied")
+        XCTAssertTrue(app.buttons["Open Settings"].exists, "the denied state names no way back to Settings")
+        XCTAssertFalse(app.buttons["Take photo"].exists, "the shutter is still drawn behind the denied state")
     }
 
     func testEveryTabRespondsToATapAnywhereAcrossTheSlotItDraws() throws {

@@ -14,7 +14,7 @@ final class IntakeScreensRenderTests: XCTestCase {
     private static let supportedWidths: [CGFloat] = [402, 375, 320]
     private static let pointsWCAGAsksForATouchTarget: CGFloat = 44
     private static let tallestAnUnstackedRowCanBe: CGFloat = 80
-    private static let swiftFilesUnderTheFeaturesSources = 40
+    private static let swiftFilesUnderTheFeaturesSources = 41
 
     private func measuredSize<V: View>(
         _ view: V,
@@ -431,7 +431,9 @@ final class IntakeScreensRenderTests: XCTestCase {
             chrome: .tabRoot(title: "Show us the problem", onReview: {}),
             capturedCount: 0,
             isCaptureAvailable: true,
-            onCapture: {}
+            permission: .authorized,
+            onCapture: {},
+            onPickFromLibrary: { _ in }
         )
     }
 

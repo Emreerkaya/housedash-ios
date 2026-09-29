@@ -62,12 +62,20 @@ public final class IntakeFlowModel {
     private let catalogue: ProblemCatalogue
     private let camera: PhotoCapture
 
+    public private(set) var cameraPermission: CameraPermission
+
     public init(catalogue: ProblemCatalogue, camera: PhotoCapture = UnavailableCamera()) {
         self.catalogue = catalogue
         self.camera = camera
+        self.cameraPermission = camera.permission
     }
 
     public var isCameraAvailable: Bool { camera.isAvailable }
+
+    public func requestCameraPermissionIfNeeded() async {
+        guard cameraPermission == .notDetermined else { return }
+        cameraPermission = await camera.requestPermission()
+    }
 
     public var canConfirmSymptom: Bool {
         guard let symptom = selectedSymptom else { return false }
@@ -154,7 +162,18 @@ public final class IntakeFlowModel {
 
     public func capturePhoto() {
         guard photos.count < Self.photoLimit else { return }
+        guard cameraPermission != .notDetermined else {
+            Task { await requestCameraPermissionIfNeeded() }
+            return
+        }
         guard let photo = camera.capture(sequence: captureCount + 1) else { return }
+        captureCount += 1
+        photos.append(photo)
+    }
+
+    public func adoptLibraryPhoto(identifier: String) {
+        guard photos.count < Self.photoLimit else { return }
+        guard let photo = camera.adopt(libraryIdentifier: identifier, sequence: captureCount + 1) else { return }
         captureCount += 1
         photos.append(photo)
     }

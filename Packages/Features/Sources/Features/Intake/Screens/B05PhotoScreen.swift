@@ -10,7 +10,9 @@ struct B05PhotoScreen<TabBar: View>: View {
             chrome: .tabRoot(title: "Show us the problem", onReview: { model.reviewPhotos() }),
             capturedCount: model.photos.count,
             isCaptureAvailable: model.isCameraAvailable,
-            onCapture: { model.capturePhoto() }
+            permission: model.cameraPermission,
+            onCapture: { model.capturePhoto() },
+            onPickFromLibrary: { model.adoptLibraryPhoto(identifier: $0) }
         )
         .safeAreaInset(edge: .bottom) {
             tabBar

@@ -24,9 +24,10 @@ final class FixtureAffordanceTests: XCTestCase {
         }
     }
 
-    func testTheFixtureCameraIsTheOnlyThingThatProducesAPhotoAndItIsDebugOnly() {
-        XCTAssertNotNil(FixtureCamera().capture(sequence: 1))
-        XCTAssertTrue(FixtureCamera().isAvailable)
+    @MainActor
+    func testTheLiveCameraNeverFabricatesAPhotoWhenNoDeviceIsAttached() {
+        XCTAssertFalse(LiveCamera().isAvailable, "this suite runs with no capture device attached")
+        XCTAssertNil(LiveCamera().capture(sequence: 1))
         XCTAssertNil(UnavailableCamera().capture(sequence: 1))
         XCTAssertFalse(UnavailableCamera().isAvailable)
     }
