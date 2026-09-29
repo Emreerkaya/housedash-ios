@@ -4,7 +4,7 @@ default:
     @just --list
 
 ios-generate:
-    xcodegen generate
+    scripts/one-project.sh
 
 ios-build: ios-generate
     xcodebuild -scheme HouseDash -destination 'generic/platform=iOS Simulator' build
