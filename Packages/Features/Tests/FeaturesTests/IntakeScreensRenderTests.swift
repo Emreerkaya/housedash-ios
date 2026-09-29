@@ -14,6 +14,7 @@ final class IntakeScreensRenderTests: XCTestCase {
     private static let supportedWidths: [CGFloat] = [402, 375, 320]
     private static let pointsWCAGAsksForATouchTarget: CGFloat = 44
     private static let tallestAnUnstackedRowCanBe: CGFloat = 80
+    private static let swiftFilesUnderTheFeaturesSources = 39
 
     private func measuredSize<V: View>(
         _ view: V,
@@ -454,7 +455,10 @@ final class IntakeScreensRenderTests: XCTestCase {
             "\(sources.path) cannot be walked, so this test read nothing"
         )
         let files = walker.compactMap { $0 as? URL }.filter { $0.pathExtension == "swift" }
-        XCTAssertGreaterThan(files.count, 1, "the scan found \(files.count) source files, so it read nothing")
+        XCTAssertEqual(
+            files.count, Self.swiftFilesUnderTheFeaturesSources,
+            "the scan found \(files.count) source files under \(sources.path) rather than the \(Self.swiftFilesUnderTheFeaturesSources) this assertion is pinned to, so it is reading a different tree from the one the announcing set below was drawn from; the count is pinned rather than floored so that a tree which grows is an edit someone makes here on purpose"
+        )
 
         var announcing: [String] = []
         var readWithoutAnnouncing: [String] = []

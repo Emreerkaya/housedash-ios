@@ -1,6 +1,6 @@
 import SwiftUI
 
-public struct HDChip: View {
+public struct HDChip: View, HDDrawsAStateMark {
     public enum State: Sendable, Equatable {
         case selected
         case unselected

@@ -1,6 +1,6 @@
 import SwiftUI
 
-public struct HDActionBar: View {
+public struct HDActionBar: View, HDDrawsAStateMark {
     public struct Price {
         public let figure: String
         public let qualifier: String

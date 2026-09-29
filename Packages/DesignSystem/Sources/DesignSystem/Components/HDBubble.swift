@@ -5,7 +5,7 @@ public enum HDBubbleSide: Sendable, Equatable {
     case outgoing
 }
 
-public struct HDBubble: View {
+public struct HDBubble: View, HDDrawsAStateMark {
     public static let maxWidth: CGFloat = 280
     public static let cornerRadius: CGFloat = 22
     public static let sideBoundaryWidth: CGFloat = 1.5
