@@ -13,6 +13,7 @@ final class IntakeScreensRenderTests: XCTestCase {
     private static let deviceWidth: CGFloat = 402
     private static let supportedWidths: [CGFloat] = [402, 375, 320]
     private static let pointsWCAGAsksForATouchTarget: CGFloat = 44
+    private static let tallestAnUnstackedRowCanBe: CGFloat = 80
 
     private func measuredSize<V: View>(
         _ view: V,
@@ -280,12 +281,22 @@ final class IntakeScreensRenderTests: XCTestCase {
             HDIdentityRow.stacks(at: .accessibility5),
             "the chosen row does not stack at accessibility5, so the width computed below is not the width it gives its title"
         )
+        for size in DynamicTypeSize.allCases where !size.isAccessibilitySize {
+            XCTAssertFalse(
+                HDIdentityRow.stacks(at: size),
+                "the chosen row stacks at \(size), which is not an accessibility size, so the rule has been imported onto every screen that uses the row"
+            )
+        }
         for width in Self.supportedWidths {
             let stacked = measuredSize(chosenRow(), width: width, dynamicTypeSize: .accessibility5)
             let flat = measuredSize(chosenRow(), width: width, dynamicTypeSize: .large)
             XCTAssertGreaterThan(
                 stacked.height, flat.height,
                 "at \(width)pt the row is \(stacked.height)pt at accessibility5 and \(flat.height)pt at the default size"
+            )
+            XCTAssertLessThan(
+                flat.height, Self.tallestAnUnstackedRowCanBe,
+                "at \(width)pt the row is \(flat.height)pt at the default content size, which is taller than a row with its affordance beside the text can be, so it is stacking where it should not"
             )
             let available = width - 2 * HDIdentityRow.horizontalPadding
             for word in ["Dripping", "faucet"] {
