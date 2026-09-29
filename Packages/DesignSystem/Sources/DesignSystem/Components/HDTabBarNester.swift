@@ -24,36 +24,33 @@ public enum HDNesterTab: String, CaseIterable, Identifiable, Sendable {
         case .fix: "wrench.and.screwdriver.fill"
         case .jobs: "list.bullet"
         case .photo: "camera.fill"
-        case .diy: "toolbox.fill"
+        case .diy: "hammer.fill"
         case .profile: "person.crop.circle.fill"
         }
     }
 }
 
 public struct HDTabBarNester: View {
-    public static let height: CGFloat = 83
-
     public let active: HDNesterTab
+    public let onSelect: (HDNesterTab) -> Void
 
-    public init(active: HDNesterTab) {
+    public init(active: HDNesterTab, onSelect: @escaping (HDNesterTab) -> Void) {
         self.active = active
+        self.onSelect = onSelect
     }
 
     public var body: some View {
-        HStack(spacing: 0) {
+        HDTabBarChrome {
             ForEach(HDNesterTab.allCases) { tab in
-                HDTabBarNesterButton(tab: tab, isActive: tab == active)
-                    .frame(maxWidth: .infinity)
+                Button {
+                    onSelect(tab)
+                } label: {
+                    HDTabBarNesterButton(tab: tab, isActive: tab == active)
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(tab == active ? .isSelected : [])
+                .frame(maxWidth: .infinity)
             }
-        }
-        .padding(.top, 10)
-        .padding(.bottom, 6)
-        .frame(maxWidth: .infinity, minHeight: Self.height, alignment: .top)
-        .background(Color.hdSurface)
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(Color.hdHairline)
-                .frame(height: 1)
         }
     }
 }
@@ -78,7 +75,9 @@ private struct HDTabBarNesterButton: View {
         let appearance = HDTabBarButtonAppearance.appearance(isActive: isActive)
         VStack(spacing: 5) {
             Image(systemName: tab.systemImage)
-                .font(.system(size: 24))
+                .resizable()
+                .scaledToFit()
+                .frame(width: HDTabBarChromeMetrics.iconSize, height: HDTabBarChromeMetrics.iconSize)
                 .foregroundStyle(Color.hdInk)
                 .opacity(appearance.iconOpacity)
             Text(tab.label)
@@ -87,5 +86,33 @@ private struct HDTabBarNesterButton: View {
                 .foregroundStyle(isActive ? Color.hdInk : Color.hdInkFaint)
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+enum HDTabBarChromeMetrics {
+    static let iconSize: CGFloat = 24
+}
+
+struct HDTabBarChrome<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(Color.hdHairline)
+                .frame(height: 1)
+
+            HStack(spacing: 0) {
+                content
+            }
+            .padding(.top, 10)
+            .padding(.bottom, 6)
+        }
+        .background(Color.hdSurface.ignoresSafeArea(edges: .bottom))
+        .frame(maxWidth: .infinity)
     }
 }
