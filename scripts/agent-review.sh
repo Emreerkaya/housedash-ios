@@ -7,8 +7,8 @@ repo="${owner_repo##*/}"
 pr="${PR_NUMBER:?PR_NUMBER is required}"
 head_sha="${HEAD_SHA:?HEAD_SHA is required}"
 
-if [ "${#head_sha}" -lt 7 ]; then
-    printf 'HEAD_SHA %s is too short to match a review trailer\n' "$head_sha" >&2
+if [ "${#head_sha}" -ne 40 ]; then
+    printf 'HEAD_SHA %s is not a full commit sha, and a trailer is only accepted when it names one exactly\n' "$head_sha" >&2
     exit 2
 fi
 
@@ -18,7 +18,7 @@ if [ -z "$changed" ]; then
     exit 2
 fi
 
-trust_bearing=('^Packages/Networking/' '^Packages/Features/Sources/Features/[^/]+/Domain/')
+trust_bearing=('^"?Packages/Networking/' '^"?Packages/Features/Sources/Features/[^/]+/Domain/' '^"?\.github/' '^"?scripts/')
 for pattern in "${trust_bearing[@]}"; do
     if ! git ls-files | grep -Eq "$pattern"; then
         printf 'no file in this checkout matches %s, so the security trigger can no longer see what it guards; update this pattern\n' "$pattern" >&2
@@ -82,15 +82,15 @@ own_trailer='.body
 
 trailers=$(printf '%s' "$reviews" \
     | jq -r ".[] | select(${entitled}) | ${own_trailer}" \
-    | grep -xE '<!--[[:space:]]*review-sha:[[:space:]]*[0-9a-f]{7,40}[[:space:]]+dimension:[[:space:]]*[a-z]+[[:space:]]+verdict:[[:space:]]*[a-z]+[[:space:]]*-->' \
+    | grep -xE '<!--[[:space:]]*review-sha:[[:space:]]*[0-9a-f]{40}[[:space:]]+dimension:[[:space:]]*[a-z]+[[:space:]]+verdict:[[:space:]]*[a-z]+[[:space:]]*-->' \
     || true)
 
 at_head=""
 while read -r sha dimension verdict; do
     [ -z "${sha:-}" ] && continue
-    case "$head_sha" in
-        "$sha"*) at_head+="${dimension} ${verdict}"$'\n' ;;
-    esac
+    if [ "$sha" = "$head_sha" ]; then
+        at_head+="${dimension} ${verdict}"$'\n'
+    fi
 done < <(printf '%s\n' "$trailers" | sed -E 's/^<!--[[:space:]]*review-sha:[[:space:]]*([0-9a-f]+)[[:space:]]+dimension:[[:space:]]*([a-z]+)[[:space:]]+verdict:[[:space:]]*([a-z]+)[[:space:]]*-->$/\1 \2 \3/')
 
 fail=0
@@ -104,6 +104,11 @@ done
 
 while read -r dimension verdict; do
     [ -z "${dimension:-}" ] && continue
+    if ! printf '%s\n' "${required[@]}" | grep -qx "$dimension"; then
+        printf 'note: a review at %s names dimension %s, which is not one this diff requires (%s); it is neither counted nor allowed to block\n' \
+            "${head_sha:0:8}" "$dimension" "${required[*]}" >&2
+        continue
+    fi
     case "$verdict" in
         clean) ;;
         blocked)
@@ -118,8 +123,8 @@ while read -r dimension verdict; do
     esac
 done < <(printf '%s' "$at_head")
 
-unresolved=$(printf '%s' "$threads" | jq '[.[] | select(.isResolved == false)] | length')
-if [ "$unresolved" -gt 0 ]; then
+unresolved=$(printf '%s' "$threads" | jq '[.[] | select(.isResolved == false)] | length' 2>/dev/null || true)
+if [ "${unresolved:-0}" -gt 0 ]; then
     printf 'note: %s unresolved thread(s); the ruleset blocks the merge on these, not this check\n' "$unresolved" >&2
 fi
 
