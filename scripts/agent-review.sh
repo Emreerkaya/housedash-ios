@@ -82,7 +82,7 @@ own_trailer='.body
 
 trailers=$(printf '%s' "$reviews" \
     | jq -r ".[] | select(${entitled}) | ${own_trailer}" \
-    | grep -xE '<!--[[:space:]]*review-sha:[[:space:]]*[0-9a-f]{40}[[:space:]]+dimension:[[:space:]]*[a-z]+[[:space:]]+verdict:[[:space:]]*[a-z]+[[:space:]]*-->' \
+    | grep -xE '<!--[[:space:]]*review-sha:[[:space:]]*[0-9a-f]{40}[[:space:]]+dimension:[[:space:]]*[^[:space:]]+[[:space:]]+verdict:[[:space:]]*[^[:space:]]+[[:space:]]*-->' \
     || true)
 
 at_head=""
@@ -91,7 +91,7 @@ while read -r sha dimension verdict; do
     if [ "$sha" = "$head_sha" ]; then
         at_head+="${dimension} ${verdict}"$'\n'
     fi
-done < <(printf '%s\n' "$trailers" | sed -E 's/^<!--[[:space:]]*review-sha:[[:space:]]*([0-9a-f]+)[[:space:]]+dimension:[[:space:]]*([a-z]+)[[:space:]]+verdict:[[:space:]]*([a-z]+)[[:space:]]*-->$/\1 \2 \3/')
+done < <(printf '%s\n' "$trailers" | sed -E 's/^<!--[[:space:]]*review-sha:[[:space:]]*([0-9a-f]+)[[:space:]]+dimension:[[:space:]]*([^[:space:]]+)[[:space:]]+verdict:[[:space:]]*([^[:space:]]+)[[:space:]]*-->$/\1 \2 \3/')
 
 fail=0
 
@@ -106,7 +106,7 @@ while read -r dimension verdict; do
     [ -z "${dimension:-}" ] && continue
     case "$verdict" in
         clean)
-            if ! printf '%s\n' "${required[@]}" | grep -qx "$dimension"; then
+            if ! printf '%s\n' "${required[@]}" | grep -qxF "$dimension"; then
                 printf 'note: a clean %s review at %s names a dimension this diff does not require (%s) and is not counted\n' \
                     "$dimension" "${head_sha:0:8}" "${required[*]}" >&2
             fi
