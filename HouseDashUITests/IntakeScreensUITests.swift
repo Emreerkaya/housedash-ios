@@ -1,3 +1,5 @@
+import CoreGraphics
+import UIKit
 import XCTest
 
 final class IntakeScreensUITests: XCTestCase {
@@ -5,6 +7,11 @@ final class IntakeScreensUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
+    }
+
+    override func tearDown() {
+        XCUIDevice.shared.appearance = .light
+        super.tearDown()
     }
 
     private static let auditedCategories: [XCUIAccessibilityAuditType] = [
@@ -18,6 +25,20 @@ final class IntakeScreensUITests: XCTestCase {
     ]
 
     private static let tabBarLabels = ["Fix", "Jobs", "Photo", "DIY", "Profile"]
+
+    private enum Band: String, CaseIterable {
+        case light
+        case dark
+
+        var appearance: XCUIDevice.Appearance {
+            switch self {
+            case .light: .light
+            case .dark: .dark
+            }
+        }
+    }
+
+    private static let brightestMeanADarkScreenDraws: Double = 0.35
 
     private func regionTheAuditCanSample(_ app: XCUIApplication) -> CGRect {
         let window = app.windows.firstMatch.frame
@@ -148,12 +169,64 @@ final class IntakeScreensUITests: XCTestCase {
         XCTAssertEqual(field.value as? String, text, "'\(field.identifier)' did not receive the typed text")
     }
 
-    private func launch(contentSize: String = "UICTContentSizeCategoryL") -> XCUIApplication {
+    private func launch(
+        contentSize: String = "UICTContentSizeCategoryL",
+        band: Band = .light
+    ) -> XCUIApplication {
+        XCUIDevice.shared.appearance = band.appearance
         let app = XCUIApplication()
         app.launchArguments += ["-UIPreferredContentSizeCategoryName", contentSize]
         app.launch()
         settle()
+        assertTheScreenIsDrawnIn(band, app)
         return app
+    }
+
+    private func meanLuminance(of app: XCUIApplication) -> Double? {
+        guard let image = app.screenshot().image.cgImage else { return nil }
+        var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
+        guard
+            let context = CGContext(
+                data: &pixels,
+                width: image.width,
+                height: image.height,
+                bitsPerComponent: 8,
+                bytesPerRow: image.width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            )
+        else { return nil }
+        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        func linearise(_ channel: Double) -> Double {
+            channel <= 0.03928 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+        }
+        var total = 0.0
+        var counted = 0
+        for index in stride(from: 0, to: pixels.count, by: 4) {
+            total += 0.2126 * linearise(Double(pixels[index]) / 255)
+                + 0.7152 * linearise(Double(pixels[index + 1]) / 255)
+                + 0.0722 * linearise(Double(pixels[index + 2]) / 255)
+            counted += 1
+        }
+        return counted == 0 ? nil : total / Double(counted)
+    }
+
+    private func assertTheScreenIsDrawnIn(_ band: Band, _ app: XCUIApplication) {
+        guard let mean = meanLuminance(of: app) else {
+            return XCTFail("the screenshot carried no pixels, so this run cannot say which band it drew")
+        }
+        switch band {
+        case .light:
+            XCTAssertGreaterThan(
+                mean, Self.brightestMeanADarkScreenDraws,
+                "this run says light and the screen means \(String(format: "%.3f", mean)) luminance, so it is drawing dark and every audit below is measuring the other band"
+            )
+        case .dark:
+            XCTAssertLessThan(
+                mean, Self.brightestMeanADarkScreenDraws,
+                "this run says dark and the screen means \(String(format: "%.3f", mean)) luminance, so the appearance never took and the dark band is still unexercised"
+            )
+        }
     }
 
     private func reachTheTabRootWithoutTyping(_ app: XCUIApplication) {
@@ -179,6 +252,28 @@ final class IntakeScreensUITests: XCTestCase {
         safeTap(drippingTapCard)
         settle()
         XCTAssertTrue(app.staticTexts["Pick the problem"].waitForExistence(timeout: 10))
+    }
+
+    func testTheSuiteDrawsBothBandsAndTheyAreNotTheSameScreen() throws {
+        XCTAssertEqual(
+            Band.allCases.count, 2,
+            "the suite lists \(Band.allCases.map(\.rawValue)) bands, so the walks below that loop over them enter fewer than both"
+        )
+        var means: [Band: Double] = [:]
+        for band in Band.allCases {
+            let app = launch(band: band)
+            reachTheTabRootWithoutTyping(app)
+            let mean = meanLuminance(of: app)
+            XCTAssertNotNil(mean, "B01 in \(band.rawValue) produced no pixels, so its band cannot be told apart from any other")
+            means[band] = mean ?? 0
+            attach(app, named: "band-probe-\(band.rawValue)")
+        }
+        let light = means[.light] ?? 0
+        let dark = means[.dark] ?? 0
+        XCTAssertGreaterThan(
+            light - dark, Self.brightestMeanADarkScreenDraws,
+            "B01 means \(String(format: "%.3f", light)) in light and \(String(format: "%.3f", dark)) in dark, so the two bands render the same screen and every audit below runs one band twice"
+        )
     }
 
     func testTheActionBarCTARespondsToATapAnywhereOnThePillItDraws() throws {
@@ -269,178 +364,182 @@ final class IntakeScreensUITests: XCTestCase {
     }
 
     func testTheSevenIntakeScreensRenderAcrossBothFlows() throws {
-        let app = launch()
-        attach(app, named: "A01-launch")
-        reachTheTabRootWithoutTyping(app)
-        attach(app, named: "B01-fix")
+        for band in Band.allCases {
+            let app = launch(band: band)
+            attach(app, named: "\(band.rawValue)-A01-launch")
+            reachTheTabRootWithoutTyping(app)
+            attach(app, named: "\(band.rawValue)-B01-fix")
 
-        XCTAssertLessThan(
-            app.staticTexts["What needs fixing?"].frame.height,
-            Self.shortestHeaderAnAccessibilitySizeDraws,
-            "the B01 header is \(app.staticTexts["What needs fixing?"].frame.height)pt, so this run is not at the default content size and the pair of content-size passes is measuring one size twice"
-        )
-        auditEveryCategory(app, on: "B01 at the default content size")
+            XCTAssertLessThan(
+                app.staticTexts["What needs fixing?"].frame.height,
+                Self.shortestHeaderAnAccessibilitySizeDraws,
+                "the B01 header is \(app.staticTexts["What needs fixing?"].frame.height)pt, so this run is not at the default content size and the pair of content-size passes is measuring one size twice"
+            )
+            auditEveryCategory(app, on: "\(band.rawValue) B01 at the default content size")
 
-        reachPickTheProblem(app)
-        attach(app, named: "B02-pick-the-problem")
-        auditEveryCategory(app, on: "B02 at the default content size")
+            reachPickTheProblem(app)
+            attach(app, named: "\(band.rawValue)-B02-pick-the-problem")
+            auditEveryCategory(app, on: "\(band.rawValue) B02 at the default content size")
 
-        app.buttons["Drips constantly, Worse when the hot tap is on, $90–140"].tap()
-        app.buttons["Next"].tap()
-        settle()
-        XCTAssertTrue(app.staticTexts["Describe it"].waitForExistence(timeout: 10))
-        attach(app, named: "B03-describe-it-clean")
-        auditEveryCategory(app, on: "B03 at the default content size")
+            app.buttons["Drips constantly, Worse when the hot tap is on, $90–140"].tap()
+            app.buttons["Next"].tap()
+            settle()
+            XCTAssertTrue(app.staticTexts["Describe it"].waitForExistence(timeout: 10))
+            attach(app, named: "\(band.rawValue)-B03-describe-it-clean")
+            auditEveryCategory(app, on: "\(band.rawValue) B03 at the default content size")
 
-        type(app, into: app.textFields["What is it doing?"], "call me on 917-555-0199 about the tap")
-        app.buttons["See both ways to fix it"].tap()
-        settle()
-        attach(app, named: "B03-describe-it-rejected")
-        XCTAssertTrue(
-            app.descendants(matching: .any)
-                .matching(NSPredicate(format: "label CONTAINS[c] %@", "phone number"))
-                .firstMatch
-                .waitForExistence(timeout: 4)
-        )
+            type(app, into: app.textFields["What is it doing?"], "call me on 917-555-0199 about the tap")
+            app.buttons["See both ways to fix it"].tap()
+            settle()
+            attach(app, named: "\(band.rawValue)-B03-describe-it-rejected")
+            XCTAssertTrue(
+                app.descendants(matching: .any)
+                    .matching(NSPredicate(format: "label CONTAINS[c] %@", "phone number"))
+                    .firstMatch
+                    .waitForExistence(timeout: 4)
+            )
 
-        let addPhotoTiles = app.buttons.matching(identifier: "photo-add-tile")
-        XCTAssertGreaterThan(
-            addPhotoTiles.count, 0,
-            "B03 offers no add-photo tile, so the camera is unreachable from the description step"
-        )
-        addPhotoTiles.firstMatch.tap()
-        settle()
-        XCTAssertTrue(app.staticTexts["Photograph it"].waitForExistence(timeout: 10))
-        attach(app, named: "B06-photograph-it")
-        auditEveryCategory(app, on: "B06 at the default content size")
+            let addPhotoTiles = app.buttons.matching(identifier: "photo-add-tile")
+            XCTAssertGreaterThan(
+                addPhotoTiles.count, 0,
+                "B03 offers no add-photo tile, so the camera is unreachable from the description step"
+            )
+            addPhotoTiles.firstMatch.tap()
+            settle()
+            XCTAssertTrue(app.staticTexts["Photograph it"].waitForExistence(timeout: 10))
+            attach(app, named: "\(band.rawValue)-B06-photograph-it")
+            auditEveryCategory(app, on: "\(band.rawValue) B06 at the default content size")
 
-        app.buttons["Take photo"].tap()
-        settle()
-        app.buttons["Back"].tap()
-        settle()
-        XCTAssertTrue(app.staticTexts["Describe it"].waitForExistence(timeout: 10))
-        attach(app, named: "B03-describe-it-with-photo")
+            app.buttons["Take photo"].tap()
+            settle()
+            app.buttons["Back"].tap()
+            settle()
+            XCTAssertTrue(app.staticTexts["Describe it"].waitForExistence(timeout: 10))
+            attach(app, named: "\(band.rawValue)-B03-describe-it-with-photo")
 
-        app.buttons["Change"].tap()
-        settle()
-        XCTAssertTrue(app.staticTexts["Pick the problem"].waitForExistence(timeout: 10))
+            app.buttons["Change"].tap()
+            settle()
+            XCTAssertTrue(app.staticTexts["Pick the problem"].waitForExistence(timeout: 10))
 
-        app.buttons["None of these, Describe it yourself"].tap()
-        app.buttons["Next"].tap()
-        settle()
-        XCTAssertTrue(app.staticTexts["In your own words"].waitForExistence(timeout: 10))
-        attach(app, named: "B04-something-else")
-        auditEveryCategory(app, on: "B04 at the default content size")
+            app.buttons["None of these, Describe it yourself"].tap()
+            app.buttons["Next"].tap()
+            settle()
+            XCTAssertTrue(app.staticTexts["In your own words"].waitForExistence(timeout: 10))
+            attach(app, named: "\(band.rawValue)-B04-something-else")
+            auditEveryCategory(app, on: "\(band.rawValue) B04 at the default content size")
 
-        type(app, into: app.textFields["In your own words"], "The radiator in the back bedroom never gets hot.")
-        app.buttons["See both ways to fix it"].tap()
-        settle()
-        settle()
-        XCTAssertTrue(app.staticTexts["What needs fixing?"].waitForExistence(timeout: 10))
-        attach(app, named: "B01-fix-with-completion-notice")
+            type(app, into: app.textFields["In your own words"], "The radiator in the back bedroom never gets hot.")
+            app.buttons["See both ways to fix it"].tap()
+            settle()
+            settle()
+            XCTAssertTrue(app.staticTexts["What needs fixing?"].waitForExistence(timeout: 10))
+            attach(app, named: "\(band.rawValue)-B01-fix-with-completion-notice")
 
-        app.buttons["Got it"].tap()
-        settle()
+            app.buttons["Got it"].tap()
+            settle()
 
-        app.buttons["Photo"].tap()
-        settle()
-        XCTAssertTrue(app.staticTexts["Show us the problem"].waitForExistence(timeout: 10))
-        attach(app, named: "B05-photo")
-        auditEveryCategory(app, on: "B05 at the default content size")
+            app.buttons["Photo"].tap()
+            settle()
+            XCTAssertTrue(app.staticTexts["Show us the problem"].waitForExistence(timeout: 10))
+            attach(app, named: "\(band.rawValue)-B05-photo")
+            auditEveryCategory(app, on: "\(band.rawValue) B05 at the default content size")
 
-        app.buttons["Take photo"].tap()
-        settle()
-        app.buttons["Review 1 captured photos"].tap()
-        settle()
-        XCTAssertTrue(app.staticTexts["A few details"].waitForExistence(timeout: 10))
-        attach(app, named: "B07-a-few-details")
-        auditEveryCategory(app, on: "B07 at the default content size")
+            app.buttons["Take photo"].tap()
+            settle()
+            app.buttons["Review 1 captured photos"].tap()
+            settle()
+            XCTAssertTrue(app.staticTexts["A few details"].waitForExistence(timeout: 10))
+            attach(app, named: "\(band.rawValue)-B07-a-few-details")
+            auditEveryCategory(app, on: "\(band.rawValue) B07 at the default content size")
 
-        type(app, into: app.textFields["What is it doing?"], "Drips constantly from the tap.")
-        app.buttons["See both ways to fix it"].tap()
-        settle()
-        settle()
-        XCTAssertTrue(app.staticTexts["Show us the problem"].waitForExistence(timeout: 10))
-        attach(app, named: "B05-photo-with-completion-notice")
+            type(app, into: app.textFields["What is it doing?"], "Drips constantly from the tap.")
+            app.buttons["See both ways to fix it"].tap()
+            settle()
+            settle()
+            XCTAssertTrue(app.staticTexts["Show us the problem"].waitForExistence(timeout: 10))
+            attach(app, named: "\(band.rawValue)-B05-photo-with-completion-notice")
+        }
     }
 
     func testEveryScreenStillReadsAtTheLargestContentSize() throws {
-        let app = launch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-        attach(app, named: "AX5-A01-launch")
-        reachTheTabRootWithoutTyping(app)
-        settle()
-        attach(app, named: "AX5-B01-fix")
+        for band in Band.allCases {
+            let app = launch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL", band: band)
+            attach(app, named: "\(band.rawValue)-AX5-A01-launch")
+            reachTheTabRootWithoutTyping(app)
+            settle()
+            attach(app, named: "\(band.rawValue)-AX5-B01-fix")
 
-        XCTAssertGreaterThan(
-            app.staticTexts["What needs fixing?"].frame.height,
-            Self.shortestHeaderAnAccessibilitySizeDraws,
-            "the B01 header is \(app.staticTexts["What needs fixing?"].frame.height)pt, and it is \(Self.headerHeightAtTheDefaultContentSize)pt at the default content size, so this run is not at an accessibility content size and nothing below measures one"
-        )
-        auditEveryCategory(app, on: "B01 at the largest content size")
-
-        for label in ["What needs fixing?", "Common in a kitchen", "Under $100", "Worth doing before winter"] {
-            XCTAssertTrue(
-                app.staticTexts[label].waitForExistence(timeout: 4),
-                "'\(label)' is not readable at the largest content size"
+            XCTAssertGreaterThan(
+                app.staticTexts["What needs fixing?"].frame.height,
+                Self.shortestHeaderAnAccessibilitySizeDraws,
+                "the B01 header is \(app.staticTexts["What needs fixing?"].frame.height)pt, and it is \(Self.headerHeightAtTheDefaultContentSize)pt at the default content size, so this run is not at an accessibility content size and nothing below measures one"
             )
+            auditEveryCategory(app, on: "\(band.rawValue) B01 at the largest content size")
+
+            for label in ["What needs fixing?", "Common in a kitchen", "Under $100", "Worth doing before winter"] {
+                XCTAssertTrue(
+                    app.staticTexts[label].waitForExistence(timeout: 4),
+                    "'\(label)' is not readable at the largest content size"
+                )
+            }
+
+            reachPickTheProblem(app)
+            attach(app, named: "\(band.rawValue)-AX5-B02-pick-the-problem")
+            auditEveryCategory(app, on: "\(band.rawValue) B02 at the largest content size")
+
+            app.buttons["Drips constantly, Worse when the hot tap is on, $90–140"].tap()
+            app.buttons["Next"].tap()
+            settle()
+            XCTAssertTrue(app.staticTexts["Describe it"].waitForExistence(timeout: 10))
+            settle()
+            attach(app, named: "\(band.rawValue)-AX5-B03-describe-it")
+            auditEveryCategory(app, on: "\(band.rawValue) B03 at the largest content size")
+            XCTAssertTrue(
+                app.staticTexts["Dripping tap or faucet"].exists,
+                "the chosen problem title is broken up or missing at the largest content size"
+            )
+
+            let addPhotoTiles = app.buttons.matching(identifier: "photo-add-tile")
+            addPhotoTiles.firstMatch.tap()
+            settle()
+            XCTAssertTrue(app.staticTexts["Photograph it"].waitForExistence(timeout: 10))
+            attach(app, named: "\(band.rawValue)-AX5-B06-photograph-it")
+            auditEveryCategory(app, on: "\(band.rawValue) B06 at the largest content size")
+            app.buttons["Back"].tap()
+            settle()
+
+            app.buttons["Change"].tap()
+            settle()
+            app.buttons["None of these, Describe it yourself"].tap()
+            app.buttons["Next"].tap()
+            settle()
+            XCTAssertTrue(app.staticTexts["In your own words"].waitForExistence(timeout: 10))
+            attach(app, named: "\(band.rawValue)-AX5-B04-something-else")
+            auditEveryCategory(app, on: "\(band.rawValue) B04 at the largest content size")
+
+            app.buttons["Back"].tap()
+            settle()
+            app.buttons["Back"].tap()
+            settle()
+            app.buttons["Photo"].tap()
+            settle()
+            settle()
+            XCTAssertTrue(
+                app.staticTexts["Show us the problem"].waitForExistence(timeout: 10),
+                "the camera title truncates at the largest content size"
+            )
+            attach(app, named: "\(band.rawValue)-AX5-B05-photo")
+            auditEveryCategory(app, on: "\(band.rawValue) B05 at the largest content size")
+
+            app.buttons["Take photo"].tap()
+            settle()
+            app.buttons["Review 1 captured photos"].tap()
+            settle()
+            settle()
+            XCTAssertTrue(app.staticTexts["A few details"].waitForExistence(timeout: 10))
+            attach(app, named: "\(band.rawValue)-AX5-B07-a-few-details")
+            auditEveryCategory(app, on: "\(band.rawValue) B07 at the largest content size")
         }
-
-        reachPickTheProblem(app)
-        attach(app, named: "AX5-B02-pick-the-problem")
-        auditEveryCategory(app, on: "B02 at the largest content size")
-
-        app.buttons["Drips constantly, Worse when the hot tap is on, $90–140"].tap()
-        app.buttons["Next"].tap()
-        settle()
-        XCTAssertTrue(app.staticTexts["Describe it"].waitForExistence(timeout: 10))
-        settle()
-        attach(app, named: "AX5-B03-describe-it")
-        auditEveryCategory(app, on: "B03 at the largest content size")
-        XCTAssertTrue(
-            app.staticTexts["Dripping tap or faucet"].exists,
-            "the chosen problem title is broken up or missing at the largest content size"
-        )
-
-        let addPhotoTiles = app.buttons.matching(identifier: "photo-add-tile")
-        addPhotoTiles.firstMatch.tap()
-        settle()
-        XCTAssertTrue(app.staticTexts["Photograph it"].waitForExistence(timeout: 10))
-        attach(app, named: "AX5-B06-photograph-it")
-        auditEveryCategory(app, on: "B06 at the largest content size")
-        app.buttons["Back"].tap()
-        settle()
-
-        app.buttons["Change"].tap()
-        settle()
-        app.buttons["None of these, Describe it yourself"].tap()
-        app.buttons["Next"].tap()
-        settle()
-        XCTAssertTrue(app.staticTexts["In your own words"].waitForExistence(timeout: 10))
-        attach(app, named: "AX5-B04-something-else")
-        auditEveryCategory(app, on: "B04 at the largest content size")
-
-        app.buttons["Back"].tap()
-        settle()
-        app.buttons["Back"].tap()
-        settle()
-        app.buttons["Photo"].tap()
-        settle()
-        settle()
-        XCTAssertTrue(
-            app.staticTexts["Show us the problem"].waitForExistence(timeout: 10),
-            "the camera title truncates at the largest content size"
-        )
-        attach(app, named: "AX5-B05-photo")
-        auditEveryCategory(app, on: "B05 at the largest content size")
-
-        app.buttons["Take photo"].tap()
-        settle()
-        app.buttons["Review 1 captured photos"].tap()
-        settle()
-        settle()
-        XCTAssertTrue(app.staticTexts["A few details"].waitForExistence(timeout: 10))
-        attach(app, named: "AX5-B07-a-few-details")
-        auditEveryCategory(app, on: "B07 at the largest content size")
     }
 
     func testEveryHeadingSiteCarriesTheHeaderTrait() throws {
