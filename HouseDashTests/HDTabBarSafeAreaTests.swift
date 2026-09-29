@@ -31,7 +31,9 @@ final class HDTabBarSafeAreaTests: XCTestCase {
 
     func testTabBarNoLongerBakesTheEightyThreePointHomeIndicatorAllowanceIntoItsOwnSize() {
         let widthProposal = CGSize(width: 393, height: 1000)
-        let controller = UIHostingController(rootView: HDTabBarNester(active: .fix) { _ in })
+        let controller = UIHostingController(
+            rootView: HDTabBarNester(active: .fix) { _ in }.environment(\.dynamicTypeSize, .large)
+        )
         let naturalHeight = controller.sizeThatFits(in: widthProposal).height
 
         XCTAssertLessThan(
@@ -41,6 +43,19 @@ final class HDTabBarSafeAreaTests: XCTestCase {
             own content only and leaves the safe-area allowance to composition (.safeAreaInset at the call \
             site plus .ignoresSafeArea on its own background), so its own natural height should be well under 83
             """
+        )
+    }
+
+    func testTheBarGrowsWithItsLabelsRatherThanHoldingThatHeightAtEveryContentSize() {
+        let widthProposal = CGSize(width: 393, height: 2000)
+        func height(at size: DynamicTypeSize) -> CGFloat {
+            UIHostingController(rootView: HDTabBarNester(active: .fix) { _ in }.environment(\.dynamicTypeSize, size))
+                .sizeThatFits(in: widthProposal).height
+        }
+
+        XCTAssertGreaterThan(
+            height(at: .accessibility5), height(at: .large),
+            "the tab labels do not respond to Dynamic Type, so the bar is the same height at every content size"
         )
     }
 }
