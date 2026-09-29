@@ -22,7 +22,7 @@ struct IntakePickRow: View {
             .background(Color.hdSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(Color.hdContext, lineWidth: isSelected ? 2 : 0)
+                    .stroke(Color.hdInk, lineWidth: isSelected ? 2 : 0)
             )
         }
         .buttonStyle(.plain)
