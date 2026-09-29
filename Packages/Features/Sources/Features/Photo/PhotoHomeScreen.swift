@@ -11,24 +11,22 @@ public struct PhotoHomeScreen<TabBar: View>: View {
     }
 
     public var body: some View {
-        HDTabScreen(tab: .photo) {
-            NavigationStack(path: $model.path) {
-                B05PhotoScreen(model: model, tabBar: tabBar)
-                    .navigationBarBackButtonHidden(true)
-                    .navigationDestination(for: PhotoFirstRoute.self) { route in
-                        destination(for: route)
-                            .navigationBarBackButtonHidden(true)
-                    }
-                    .overlay(alignment: .top) {
-                        if let submission = model.completedSubmission {
-                            IntakeCaseReadyNotice(submission: submission, tone: .onContext) {
-                                model.acknowledgeCompletion()
-                            }
-                            .padding(HDSpacing.margin)
+        NavigationStack(path: $model.path) {
+            B05PhotoScreen(model: model, tabBar: tabBar)
+                .navigationBarBackButtonHidden(true)
+                .navigationDestination(for: PhotoFirstRoute.self) { route in
+                    destination(for: route)
+                        .navigationBarBackButtonHidden(true)
+                }
+                .overlay(alignment: .top) {
+                    if let submission = model.completedSubmission {
+                        IntakeCaseReadyNotice(submission: submission, tone: .onContext) {
+                            model.acknowledgeCompletion()
                         }
+                        .padding(HDSpacing.margin)
                     }
-                    .hdAnnounce(model.announcement) { model.acknowledgeAnnouncement() }
-            }
+                }
+                .hdAnnounce(model.announcement) { model.acknowledgeAnnouncement() }
         }
     }
 

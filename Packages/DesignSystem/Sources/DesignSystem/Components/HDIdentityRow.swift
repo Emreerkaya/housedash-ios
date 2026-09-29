@@ -68,7 +68,7 @@ public struct HDIdentityRow: View {
         }
     }
 
-    var changeButton: some View {
+    public var changeButton: some View {
         Button(action: onChange) {
             HDText("Change", style: HDType.label, color: .hdInkSoft)
                 .frame(minWidth: Self.minimumChangeTouchTarget, minHeight: Self.minimumChangeTouchTarget)

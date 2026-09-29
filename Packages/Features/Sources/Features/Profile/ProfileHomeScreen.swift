@@ -5,25 +5,23 @@ public struct ProfileHomeScreen: View {
     public init() {}
 
     public var body: some View {
-        HDTabScreen(tab: .profile) {
-            HDScreen {
-                HDItemStack {
-                    HDText("Profile", style: HDType.titleLarge)
-                    HDText(
-                        "Your account, your other profile, and how HouseDash reaches you.",
-                        style: HDType.body,
-                        color: .hdInkSoft
-                    )
-                }
+        HDScreen {
+            HDItemStack {
+                HDText("Profile", style: HDType.titleLarge)
+                HDText(
+                    "Your account, your other profile, and how HouseDash reaches you.",
+                    style: HDType.body,
+                    color: .hdInkSoft
+                )
+            }
 
-                HDItemStack {
-                    HDText("Account", style: HDType.section)
-                    HDText(
-                        "Placeholder destination. Auth (S01 through S05) assembles here.",
-                        style: HDType.bodyDense,
-                        color: .hdInkFaint
-                    )
-                }
+            HDItemStack {
+                HDText("Account", style: HDType.section)
+                HDText(
+                    "Placeholder destination. Auth (S01 through S05) assembles here.",
+                    style: HDType.bodyDense,
+                    color: .hdInkFaint
+                )
             }
         }
     }
