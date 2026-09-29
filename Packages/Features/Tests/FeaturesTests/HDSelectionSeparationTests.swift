@@ -27,7 +27,7 @@ final class HDSelectionSeparationTests: XCTestCase {
         "IntakePickRow"
     ]
     private static let swiftFilesUnderEachPackagesSources = [
-        "DesignSystem": 34,
+        "DesignSystem": 35,
         "Features": 40,
         "Networking": 3
     ]

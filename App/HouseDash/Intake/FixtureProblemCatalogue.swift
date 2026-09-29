@@ -2,7 +2,30 @@
 import Features
 
 struct FixtureProblemCatalogue: ProblemCatalogue {
-    private static let drippingTap = ProblemSummary(
+    enum RailBand: String, CaseIterable, Sendable {
+        case common
+        case under100
+        case seasonal
+
+        func heading(for room: HDRoom) -> String {
+            switch self {
+            case .common:
+                room == .outdoors ? "Common outdoors" : "Common in a \(room.label.lowercased())"
+            case .under100:
+                "Under $100"
+            case .seasonal:
+                "Worth doing before winter"
+            }
+        }
+    }
+
+    struct Entry: Sendable {
+        let room: HDRoom
+        let band: RailBand
+        let problem: ProblemSummary
+    }
+
+    static let drippingTap = ProblemSummary(
         id: "dripping-tap",
         title: "Dripping tap",
         fullTitle: "Dripping tap or faucet",
@@ -10,71 +33,100 @@ struct FixtureProblemCatalogue: ProblemCatalogue {
         priceRange: "$90–140"
     )
 
-    private static let kitchenRails: [ProblemRail] = [
-        ProblemRail(
-            id: "common-in-a-kitchen",
-            heading: "Common in a kitchen",
-            cards: [
-                drippingTap,
-                ProblemSummary(id: "blocked-drain", title: "Blocked drain", category: "Water", priceRange: "$120–180"),
-                ProblemSummary(
-                    id: "dishwasher-wont-drain",
-                    title: "Dishwasher won't drain",
-                    category: "Appliance",
-                    priceRange: "$140–220"
-                ),
-                ProblemSummary(
-                    id: "loose-cabinet-door",
-                    title: "Loose cabinet door",
-                    category: "Carpentry",
-                    priceRange: "$70–110"
-                )
-            ]
+    static let entries: [Entry] = [
+        Entry(room: .kitchen, band: .common, problem: drippingTap),
+        Entry(
+            room: .kitchen,
+            band: .common,
+            problem: ProblemSummary(id: "blocked-drain", title: "Blocked drain", category: "Water", priceRange: "$120–180")
         ),
-        ProblemRail(
-            id: "under-100",
-            heading: "Under $100",
-            cards: [
-                ProblemSummary(id: "running-toilet", title: "Running toilet", category: "Water", priceRange: "$70–95"),
-                ProblemSummary(id: "sticking-door", title: "Sticking door", category: "Carpentry", priceRange: "$60–90"),
-                ProblemSummary(
-                    id: "silicone-reseal",
-                    title: "Silicone reseal",
-                    category: "Water",
-                    priceRange: "$80–100"
-                ),
-                ProblemSummary(id: "blown-socket", title: "Blown socket", category: "Electrical", priceRange: "$75–95")
-            ]
+        Entry(
+            room: .kitchen,
+            band: .common,
+            problem: ProblemSummary(
+                id: "dishwasher-wont-drain",
+                title: "Dishwasher won't drain",
+                category: "Appliance",
+                priceRange: "$140–220"
+            )
         ),
-        ProblemRail(
-            id: "worth-doing-before-winter",
-            heading: "Worth doing before winter",
-            cards: [
-                ProblemSummary(
-                    id: "bleed-radiators",
-                    title: "Bleed radiators",
-                    category: "Heating",
-                    priceRange: "$60–90"
-                ),
-                ProblemSummary(
-                    id: "draught-seal-a-door",
-                    title: "Draught-seal a door",
-                    category: "Carpentry",
-                    priceRange: "$90–130"
-                ),
-                ProblemSummary(
-                    id: "clear-the-gutters",
-                    title: "Clear the gutters",
-                    category: "Exterior",
-                    priceRange: "$120–190"
-                ),
-                ProblemSummary(
-                    id: "service-the-boiler",
-                    title: "Service the boiler",
-                    category: "Heating",
-                    priceRange: "$140–200"
-                )
-            ]
+        Entry(
+            room: .kitchen,
+            band: .common,
+            problem: ProblemSummary(
+                id: "loose-cabinet-door",
+                title: "Loose cabinet door",
+                category: "Carpentry",
+                priceRange: "$70–110"
+            )
+        ),
+        Entry(
+            room: .kitchen,
+            band: .seasonal,
+            problem: ProblemSummary(
+                id: "service-the-boiler",
+                title: "Service the boiler",
+                category: "Heating",
+                priceRange: "$140–200"
+            )
+        ),
+
+        Entry(
+            room: .bathroom,
+            band: .under100,
+            problem: ProblemSummary(id: "running-toilet", title: "Running toilet", category: "Water", priceRange: "$70–95")
+        ),
+        Entry(
+            room: .bathroom,
+            band: .under100,
+            problem: ProblemSummary(
+                id: "silicone-reseal",
+                title: "Silicone reseal",
+                category: "Water",
+                priceRange: "$80–100"
+            )
+        ),
+
+        Entry(
+            room: .bedroom,
+            band: .under100,
+            problem: ProblemSummary(id: "sticking-door", title: "Sticking door", category: "Carpentry", priceRange: "$60–90")
+        ),
+        Entry(
+            room: .bedroom,
+            band: .under100,
+            problem: ProblemSummary(id: "blown-socket", title: "Blown socket", category: "Electrical", priceRange: "$75–95")
+        ),
+        Entry(
+            room: .bedroom,
+            band: .seasonal,
+            problem: ProblemSummary(
+                id: "bleed-radiators",
+                title: "Bleed radiators",
+                category: "Heating",
+                priceRange: "$60–90"
+            )
+        ),
+
+        Entry(
+            room: .outdoors,
+            band: .seasonal,
+            problem: ProblemSummary(
+                id: "draught-seal-a-door",
+                title: "Draught-seal a door",
+                category: "Carpentry",
+                priceRange: "$90–130"
+            )
+        ),
+        Entry(
+            room: .outdoors,
+            band: .seasonal,
+            problem: ProblemSummary(
+                id: "clear-the-gutters",
+                title: "Clear the gutters",
+                category: "Exterior",
+                priceRange: "$120–190"
+            )
         )
     ]
 
@@ -111,7 +163,11 @@ struct FixtureProblemCatalogue: ProblemCatalogue {
     ]
 
     func rails(for room: HDRoom) async throws -> [ProblemRail] {
-        room == .kitchen ? Self.kitchenRails : []
+        RailBand.allCases.compactMap { band in
+            let cards = Self.entries.filter { $0.room == room && $0.band == band }.map(\.problem)
+            guard !cards.isEmpty else { return nil }
+            return ProblemRail(id: "\(room.rawValue)-\(band.rawValue)", heading: band.heading(for: room), cards: cards)
+        }
     }
 
     func symptoms(for problem: ProblemSummary) async throws -> [SymptomOption] {
