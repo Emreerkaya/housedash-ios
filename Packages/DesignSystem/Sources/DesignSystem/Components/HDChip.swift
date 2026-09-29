@@ -7,6 +7,7 @@ public struct HDChip: View {
     }
 
     public static let minimumHeight: CGFloat = 44
+    public static let selectedBoundaryWidth: CGFloat = 1.5
 
     private let label: String
     private let state: State
@@ -24,6 +25,7 @@ public struct HDChip: View {
                 .padding(.horizontal, 18)
                 .frame(minHeight: Self.minimumHeight)
                 .background(fill, in: Capsule())
+                .overlay(Capsule().stroke(boundary, lineWidth: Self.selectedBoundaryWidth))
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(state == .selected ? .isSelected : [])
@@ -35,6 +37,15 @@ public struct HDChip: View {
             return .hdContext
         case .unselected:
             return .hdSurfaceSunk
+        }
+    }
+
+    var boundary: Color {
+        switch state {
+        case .selected:
+            return .hdOnContext
+        case .unselected:
+            return .clear
         }
     }
 

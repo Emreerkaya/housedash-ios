@@ -303,12 +303,27 @@ final class IntakeScreensRenderTests: XCTestCase {
         )
     }
 
-    func testThePhotoCountBadgeClearsAAOnTheCircleItSitsIn() {
+    func testThePhotoCountBadgeResolvesToSomethingVisibleOnTheCircleItDraws() throws {
+        let badge = HDCountBadge(count: 1, on: CameraCaptureScreen.photoCountBadgeCircle)
+        let ink = try XCTUnwrap(
+            badge.ink,
+            "no token in the palette clears AA on \(CameraCaptureScreen.photoCountBadgeCircle) in both bands, so the badge has nothing legible to draw with"
+        )
+        let resolvedInk = UIColor(Color(hdToken: ink))
+        let resolvedCircle = UIColor(Color(hdToken: CameraCaptureScreen.photoCountBadgeCircle))
+        for style in [UIUserInterfaceStyle.light, .dark] {
+            let trait = UITraitCollection(userInterfaceStyle: style)
+            XCTAssertNotEqual(
+                resolvedInk.resolvedColor(with: trait),
+                resolvedCircle.resolvedColor(with: trait),
+                "the badge resolves to the same value as the circle it sits on in \(style == .dark ? "dark" : "light"), so it is a blank dot"
+            )
+        }
         for band in HDBand.allCases {
-            let ratio = HDContrast.ratio(of: CameraCaptureScreen.photoCountBadgeInk, on: .onContext, in: band)
+            let ratio = HDContrast.ratio(of: ink, on: CameraCaptureScreen.photoCountBadgeCircle, in: band)
             XCTAssertGreaterThanOrEqual(
-                ratio, 4.5,
-                "the count is \(String(format: "%.2f", ratio)):1 on its own circle in \(band), so it is unreadable"
+                ratio, HDCountBadge.wcagAAForBodyText,
+                "the count the badge actually draws is \(String(format: "%.2f", ratio)):1 on its own circle in \(band)"
             )
         }
     }

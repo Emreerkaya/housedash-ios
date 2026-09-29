@@ -33,7 +33,7 @@ enum CameraCaptureChrome {
 
 struct CameraCaptureScreen: View {
     static let minimumPreviewHeight: CGFloat = 320
-    static let photoCountBadgeInk: HDToken = .context
+    static let photoCountBadgeCircle: HDToken = .onContext
     static let navigationTitleInset: CGFloat = 44 + HDSpacing.margin
     static let flashIndicatorSide: CGFloat = 44
 
@@ -159,9 +159,7 @@ struct CameraCaptureScreen: View {
             )
             .overlay(alignment: .bottomTrailing) {
                 if capturedCount > 0 {
-                    HDText("\(capturedCount)", style: HDType.caption, color: Color(hdToken: Self.photoCountBadgeInk))
-                        .padding(4)
-                        .background(Color.hdOnContext, in: Circle())
+                    HDCountBadge(count: capturedCount, on: Self.photoCountBadgeCircle)
                         .offset(x: 6, y: 6)
                 }
             }
