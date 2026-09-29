@@ -53,31 +53,115 @@ public struct HDTwinCardLockedDetail: Sendable, Equatable {
     )
 }
 
+public struct HDEqualHeightColumn: Layout {
+    public let spacing: CGFloat
+
+    public init(spacing: CGFloat) {
+        self.spacing = spacing
+    }
+
+    public func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let height = Self.commonHeight(of: subviews, width: proposal.width)
+        let width = subviews.reduce(CGFloat.zero) { widest, subview in
+            max(widest, subview.sizeThatFits(ProposedViewSize(width: proposal.width, height: height)).width)
+        }
+        return CGSize(width: width, height: Self.stackedHeight(of: height, count: subviews.count, spacing: spacing))
+    }
+
+    public func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let height = Self.commonHeight(of: subviews, width: bounds.width)
+        var y = bounds.minY
+        for subview in subviews {
+            subview.place(
+                at: CGPoint(x: bounds.minX, y: y),
+                anchor: .topLeading,
+                proposal: ProposedViewSize(width: bounds.width, height: height)
+            )
+            y += height + spacing
+        }
+    }
+
+    static func commonHeight(of subviews: Subviews, width: CGFloat?) -> CGFloat {
+        subviews.reduce(CGFloat.zero) { tallest, subview in
+            max(tallest, subview.sizeThatFits(ProposedViewSize(width: width, height: nil)).height)
+        }
+    }
+
+    static func stackedHeight(of common: CGFloat, count: Int, spacing: CGFloat) -> CGFloat {
+        common * CGFloat(count) + spacing * CGFloat(max(0, count - 1))
+    }
+}
+
+public struct HDTwinCardPair: View {
+    public static let defaultSpacing: CGFloat = HDSpacing.item
+
+    private let first: HDTwinCard
+    private let second: HDTwinCard
+    private let spacing: CGFloat
+
+    public init(_ first: HDTwinCard, _ second: HDTwinCard, spacing: CGFloat = HDTwinCardPair.defaultSpacing) {
+        self.first = first
+        self.second = second
+        self.spacing = spacing
+    }
+
+    public var body: some View {
+        HDEqualHeightColumn(spacing: spacing) {
+            first
+            second
+        }
+    }
+}
+
 public struct HDTwinCard: View {
     public static let size = CGSize(width: 353, height: 258)
     public static let padding: CGFloat = 22
     public static let cornerRadius: CGFloat = 22
+    public static let ctaHeight: CGFloat = 50
+    public static let ctaCornerRadius: CGFloat = 14
+    public static let optionCount = 2
 
     public enum Content {
         case diy(HDTwinCardFacts)
         case hire(HDTwinCardFacts)
         case locked(HDTwinCardLockedDetail)
+
+        public var optionIndex: Int {
+            switch self {
+            case .diy, .locked: 1
+            case .hire: 2
+            }
+        }
     }
 
     public let content: Content
+    let action: () -> Void
 
-    public init(_ content: Content) {
+    public init(_ content: Content, action: @escaping () -> Void) {
         self.content = content
+        self.action = action
     }
 
     public var body: some View {
+        Button(action: action) {
+            card
+        }
+        .buttonStyle(.plain)
+        .contentShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel(accessibilityLabelText)
+        .accessibilityValue(accessibilityValueText)
+    }
+
+    private var card: some View {
         VStack(alignment: .leading, spacing: 0) {
             head
-            Spacer(minLength: 0)
+            Spacer(minLength: HDSpacing.item)
             cta
         }
         .padding(Self.padding)
-        .frame(width: Self.size.width, height: Self.size.height, alignment: .topLeading)
+        .frame(width: Self.size.width, alignment: .topLeading)
+        .frame(minHeight: Self.size.height, alignment: .topLeading)
         .background(fill)
         .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
     }
@@ -110,7 +194,7 @@ public struct HDTwinCard: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                ForEach(facts.facts, id: \.self) { fact in
+                ForEach(Array(facts.facts.enumerated()), id: \.offset) { _, fact in
                     Text(fact)
                         .hdTypeStyle(HDType.factRow)
                         .foregroundStyle(Color.hdInkSoft)
@@ -144,10 +228,11 @@ public struct HDTwinCard: View {
         Text(ctaLabel)
             .hdTypeStyle(HDType.bodyStrong)
             .foregroundStyle(ctaTextColor)
+            .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
-            .frame(height: 50)
+            .frame(minHeight: Self.ctaHeight)
             .background(ctaFill)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Self.ctaCornerRadius, style: .continuous))
     }
 
     private var ctaLabel: String {
@@ -155,6 +240,40 @@ public struct HDTwinCard: View {
         case let .diy(facts): facts.ctaLabel
         case let .hire(facts): facts.ctaLabel
         case let .locked(detail): detail.ctaLabel
+        }
+    }
+
+    var accessibilityLabelText: String {
+        let ordinal = "Option \(content.optionIndex) of \(Self.optionCount)"
+        switch content {
+        case let .diy(facts), let .hire(facts):
+            return "\(ordinal). \(facts.label). \(facts.ctaLabel)."
+        case let .locked(detail):
+            return "\(ordinal). \(detail.label). Locked. \(detail.ctaLabel)."
+        }
+    }
+
+    var accessibilityValueText: String {
+        switch content {
+        case let .diy(facts), let .hire(facts):
+            return (["\(facts.figure) \(facts.qualifier)"] + facts.facts).joined(separator: ". ") + "."
+        case let .locked(detail):
+            return "\(detail.title). \(detail.body)"
+        }
+    }
+
+    var fillToken: HDToken {
+        switch content {
+        case .diy, .hire: .surface
+        case .locked: .locked
+        }
+    }
+
+    var ctaFillToken: HDToken {
+        switch content {
+        case .diy: .accentDIY
+        case .hire: .accentHire
+        case .locked: .surfaceSunk
         }
     }
 
