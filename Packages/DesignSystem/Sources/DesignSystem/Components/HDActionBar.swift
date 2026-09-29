@@ -11,13 +11,27 @@ public struct HDActionBar: View {
         }
     }
 
+    public static let minimumCTAHeight: CGFloat = 52
+    public static let ctaCornerRadius: CGFloat = 14
+    public static let ctaIdentifier = "action-bar-cta"
+
     private let price: Price?
     private let ctaTitle: String
+    private let isCTAEnabled: Bool
+    private let disabledExplanation: String?
     private let action: () -> Void
 
-    public init(price: Price? = nil, ctaTitle: String, action: @escaping () -> Void) {
+    public init(
+        price: Price? = nil,
+        ctaTitle: String,
+        isCTAEnabled: Bool = true,
+        disabledExplanation: String? = nil,
+        action: @escaping () -> Void
+    ) {
         self.price = price
         self.ctaTitle = ctaTitle
+        self.isCTAEnabled = isCTAEnabled
+        self.disabledExplanation = disabledExplanation
         self.action = action
     }
 
@@ -31,16 +45,34 @@ public struct HDActionBar: View {
             }
 
             Button(action: action) {
-                HDText(ctaTitle, style: HDType.bodyStrong, color: .hdOnContext)
+                HDText(ctaTitle, style: HDType.bodyStrong, color: ctaTextColor)
                     .frame(maxWidth: .infinity)
-                    .frame(minHeight: 52)
+                    .frame(minHeight: Self.minimumCTAHeight)
+                    .background(ctaFill, in: RoundedRectangle(cornerRadius: Self.ctaCornerRadius, style: .continuous))
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .background(Color.hdContext, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .disabled(!isCTAEnabled)
+            .accessibilityIdentifier(Self.ctaIdentifier)
+            .accessibilityLabel(ctaAccessibilityLabel)
+            .accessibilityAddTraits(.isButton)
         }
         .padding(.horizontal, HDSpacing.margin)
         .padding(.top, 10)
         .padding(.bottom, 14)
         .background(Color.hdGround)
+    }
+
+    var ctaFill: Color {
+        isCTAEnabled ? .hdContext : .hdLocked
+    }
+
+    var ctaTextColor: Color {
+        isCTAEnabled ? .hdOnContext : .hdInkSoft
+    }
+
+    var ctaAccessibilityLabel: String {
+        guard !isCTAEnabled, let disabledExplanation else { return ctaTitle }
+        return "\(ctaTitle), \(disabledExplanation)"
     }
 }
