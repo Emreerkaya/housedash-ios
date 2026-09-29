@@ -14,8 +14,8 @@ public struct HDRootTabView: View {
 
     public var body: some View {
         Group {
-            if selection == .photo {
-                PhotoHomeScreen(camera: camera, tabBar: { tabBar })
+            if Self.drawsItsOwnTabBar(selection) {
+                rootScreen(for: selection)
             } else {
                 rootScreen(for: selection)
                     .onHDTabBarHiddenChange { isTabBarHidden = $0 }
@@ -29,6 +29,13 @@ public struct HDRootTabView: View {
         .tint(Color.hdInk)
     }
 
+    static func drawsItsOwnTabBar(_ tab: HDNesterTab) -> Bool {
+        switch tab {
+        case .photo: true
+        case .fix, .jobs, .diy, .profile: false
+        }
+    }
+
     @ViewBuilder
     private func rootScreen(for tab: HDNesterTab) -> some View {
         switch tab {
@@ -37,7 +44,7 @@ public struct HDRootTabView: View {
         case .jobs:
             JobsHomeScreen()
         case .photo:
-            EmptyView()
+            PhotoHomeScreen(camera: camera, tabBar: { tabBar })
         case .diy:
             ToolboxHomeScreen()
         case .profile:
