@@ -7,97 +7,176 @@ final class HDContrastTests: XCTestCase {
 
     private static let wcagAAForNonTextContrast: Double = 3
 
-    func testEveryTextTokenClearsAAOnEveryScreenGroundInBothBands() {
+    private static let placementsTheRolesHold = 24
+
+    private static let surfaceTheTwinCardDrawsItsAccentLabelOn = HDToken.surface
+
+    private static var inkDrawnOnAScreen: [HDToken] {
+        HDToken.tokens(in: .text).filter { !$0.roles.contains(.invertedGround) }
+    }
+
+    private static var inkDrawnOnAnInvertedGround: [HDToken] {
+        HDToken.tokens(in: .text).filter { $0.roles.contains(.invertedGround) }
+    }
+
+    private static var boundariesAlsoDrawnAsInk: [HDToken] {
+        HDToken.tokens(in: .boundary).filter { $0.roles.contains(.text) }
+    }
+
+    private static var boundariesDrawnOnAnInvertedGround: [HDToken] {
+        HDToken.tokens(in: .boundary).filter {
+            $0.roles.contains(.invertedGround) || $0.roles.contains(.textOnAnInvertedGround)
+        }
+    }
+
+    private static var boundariesThatAreDecorationOnly: [HDToken] {
+        HDToken.tokens(in: .boundary).filter {
+            !$0.roles.contains(.text) && !$0.roles.contains(.invertedGround)
+                && !$0.roles.contains(.textOnAnInvertedGround)
+        }
+    }
+
+    private func shortfalls(
+        _ foregrounds: [HDToken],
+        on backgrounds: [HDToken],
+        below bar: Double
+    ) -> [String] {
         var failures: [String] = []
-        for foreground in HDToken.tokens(in: .text) {
-            for background in HDToken.tokens(in: .screenGround) {
+        for foreground in foregrounds {
+            for background in backgrounds {
                 for band in HDBand.allCases {
                     let ratio = HDContrast.ratio(of: foreground, on: background, in: band)
-                    if ratio < Self.wcagAAForBodyText {
-                        failures.append(
-                            "\(foreground)/\(background) is \(String(format: "%.2f", ratio)):1 in \(band)"
-                        )
+                    if ratio < bar {
+                        failures.append("\(foreground)/\(background) is \(String(format: "%.2f", ratio)):1 in \(band)")
                     }
                 }
             }
         }
+        return failures
+    }
+
+    func testEveryTextTokenClearsAAOnEveryScreenGround() {
+        let foregrounds = Self.inkDrawnOnAScreen
+        let backgrounds = HDToken.tokens(in: .screenGround)
+        let failures = shortfalls(foregrounds, on: backgrounds, below: Self.wcagAAForBodyText)
+        XCTAssertFalse(
+            foregrounds.isEmpty || backgrounds.isEmpty,
+            "one side of this sweep is empty, so it asserts nothing"
+        )
         XCTAssertEqual(
             failures, [],
-            "\(failures.count) of the \(HDToken.tokens(in: .text).count * HDToken.tokens(in: .screenGround).count * HDBand.allCases.count) text-on-ground pairs the palette can produce fail AA: \(failures.joined(separator: ", "))"
+            "\(failures.count) of the \(foregrounds.count * backgrounds.count * HDBand.allCases.count) text-on-ground pairs the palette can produce fail AA: \(failures.joined(separator: ", ")); this sweep leaves out \(Self.inkDrawnOnAnInvertedGround), which are drawn as text only on \(Self.surfaceTheTwinCardDrawsItsAccentLabelOn), and \(HDToken.tokens(in: .controlGround)), which is a control's own fill"
         )
     }
 
-    func testEveryInvertedGroundCarriesItsOwnTextTokenAtAA() {
-        var failures: [String] = []
-        for background in HDToken.tokens(in: .invertedGround) {
-            let legible = HDToken.tokens(in: .textOnAnInvertedGround).filter { foreground in
-                HDBand.allCases.allSatisfy { band in
-                    HDContrast.ratio(of: foreground, on: background, in: band) >= Self.wcagAAForBodyText
-                }
-            }
-            if legible.isEmpty {
-                failures.append(
-                    "\(background) has no token in \(HDToken.tokens(in: .textOnAnInvertedGround)) that clears AA on it in both bands"
-                )
-            }
-        }
-        XCTAssertEqual(failures, [], failures.joined(separator: ", "))
-    }
-
-    func testTheSweepCoversEveryTokenExactlyOnce() {
-        let counted = HDTokenRole.allCases.flatMap { HDToken.tokens(in: $0) }
-        XCTAssertEqual(
-            Set(counted), Set(HDToken.allCases),
-            "the roles do not partition the palette, so a token can be added without being swept"
-        )
-        XCTAssertEqual(
-            counted.count, HDToken.allCases.count,
-            "a token carries more than one role, so the sweep counts it twice"
-        )
+    func testEveryTokenDrawnAsTextOnASurfaceOnlyClearsAAOnThatSurface() {
+        let foregrounds = Self.inkDrawnOnAnInvertedGround
         XCTAssertFalse(
-            HDToken.tokens(in: .text).isEmpty || HDToken.tokens(in: .screenGround).isEmpty,
-            "one side of the sweep is empty, so the sweep above asserts nothing"
+            foregrounds.isEmpty,
+            "no token is placed in both .text and .invertedGround, so this sweep asserts nothing and the two-role placement it exists for has been undone"
         )
+        let failures = shortfalls(
+            foregrounds,
+            on: [Self.surfaceTheTwinCardDrawsItsAccentLabelOn],
+            below: Self.wcagAAForBodyText
+        )
+        XCTAssertEqual(
+            failures, [],
+            "\(failures.count) accent-as-text pairs fail AA on the surface they are drawn on: \(failures.joined(separator: ", "))"
+        )
+    }
+
+    func testEveryTokenDrawnAsTextOnAnInvertedGroundClearsAAOnTheGroundItsNameClaims() {
+        var failures: [String] = []
+        var claimed: Set<HDToken> = []
+        for foreground in HDToken.tokens(in: .textOnAnInvertedGround) {
+            let grounds = foreground.invertedGroundItsNameClaims
+            XCTAssertFalse(
+                grounds.isEmpty,
+                "\(foreground) is placed as text on an inverted ground and its name claims none, so nothing pairs it with a ground and the sweep skips it"
+            )
+            claimed.formUnion(grounds)
+            failures += shortfalls([foreground], on: grounds, below: Self.wcagAAForBodyText)
+        }
+        XCTAssertEqual(
+            Set(HDToken.tokens(in: .invertedGround)).subtracting(claimed), [],
+            "\(Set(HDToken.tokens(in: .invertedGround)).subtracting(claimed).map(\.rawValue).sorted()) is an inverted ground no text token's name claims, so no pair covers it and an existential would have passed it"
+        )
+        XCTAssertEqual(
+            failures, [],
+            "\(failures.count) of the pairs a token's own name claims fail AA, and this sweep is universal over those pairs rather than existential over the role: \(failures.joined(separator: ", "))"
+        )
+    }
+
+    func testEveryTextTokenClearsTheNonTextRatioOnEveryControlGround() {
+        let backgrounds = HDToken.tokens(in: .controlGround)
+        XCTAssertFalse(backgrounds.isEmpty, "no token is placed as a control ground, so this sweep asserts nothing")
+        let failures = shortfalls(Self.inkDrawnOnAScreen, on: backgrounds, below: Self.wcagAAForNonTextContrast)
+        XCTAssertEqual(
+            failures, [],
+            "\(failures.count) text-on-control-ground pairs fall below \(Self.wcagAAForNonTextContrast):1: \(failures.joined(separator: ", ")); the bar here is the non-text ratio rather than AA because WCAG 1.4.3 exempts the label of an inactive control while 1.4.11 still asks the control be discernible, and the foregrounds are the ink drawn on a ground rather than \(Self.inkDrawnOnAnInvertedGround), which is an accent label drawn only on \(Self.surfaceTheTwinCardDrawsItsAccentLabelOn)"
+        )
+    }
+
+    func testTheSweepCoversEveryTokenExactlyOncePerRoleItIsDrawnIn() {
+        let placements = HDToken.placements
+        XCTAssertEqual(
+            Set(placements.map(\.token)), Set(HDToken.allCases),
+            "the roles do not cover the palette, so a token can be added without being swept"
+        )
+        XCTAssertEqual(
+            placements.count, Set(placements.map { "\($0.token)/\($0.role)" }).count,
+            "a token is placed in the same role twice, so the sweep counts it twice"
+        )
+        XCTAssertGreaterThan(
+            placements.count, HDToken.allCases.count,
+            "every token carries exactly one role, so the per-role placement this sweep exists for is not in use and a token drawn in two roles is checked in only one of them"
+        )
+        XCTAssertEqual(
+            placements.count, Self.placementsTheRolesHold,
+            "the palette places \(placements.count) token-and-role pairs rather than \(Self.placementsTheRolesHold), so a token has gained or lost a role; this count is what makes such a change deliberate, and the sweep that tests the draw rather than the declaration is the rendered selection sweep in FeaturesTests"
+        )
+        for role in HDTokenRole.allCases {
+            XCTAssertFalse(
+                HDToken.tokens(in: role).isEmpty,
+                "\(role) holds no token, so every sweep over it is vacuous"
+            )
+        }
+        for token in HDToken.allCases {
+            XCTAssertFalse(
+                token.roles.isEmpty,
+                "\(token) is drawn as nothing, so no sweep reaches it"
+            )
+        }
     }
 
     func testAMarkClearsTheNonTextRatioOnEveryScreenGround() {
-        var failures: [String] = []
-        for foreground in HDToken.tokens(in: .mark) {
-            for background in HDToken.tokens(in: .screenGround) {
-                for band in HDBand.allCases {
-                    let ratio = HDContrast.ratio(of: foreground, on: background, in: band)
-                    if ratio < Self.wcagAAForNonTextContrast {
-                        failures.append(
-                            "\(foreground)/\(background) is \(String(format: "%.2f", ratio)):1 in \(band)"
-                        )
-                    }
-                }
-            }
-        }
+        let failures = shortfalls(
+            HDToken.tokens(in: .mark),
+            on: HDToken.tokens(in: .screenGround),
+            below: Self.wcagAAForNonTextContrast
+        )
         XCTAssertEqual(
             failures, [],
             "\(failures.count) marks fall below \(Self.wcagAAForNonTextContrast):1 against a screen ground: \(failures.joined(separator: ", "))"
         )
     }
 
-    func testASelectedChipIsSeparatedFromAnUnselectedOneInEveryBand() {
-        for band in HDBand.allCases {
-            let fills = HDContrast.ratio(of: .context, on: .surfaceSunk, in: band)
-            let boundaryAgainstTheGround = HDToken.tokens(in: .screenGround)
-                .map { HDContrast.ratio(of: .onContext, on: $0, in: band) }
-                .min() ?? 0
-            let labelsDiffer = HDPalette.pair(for: .onContext).hex(in: band).uppercased()
-                != HDPalette.pair(for: .ink).hex(in: band).uppercased()
-            let indicators = [
-                "the fill at \(String(format: "%.2f", fills)):1": fills >= Self.wcagAAForNonTextContrast,
-                "the boundary at \(String(format: "%.2f", boundaryAgainstTheGround)):1": boundaryAgainstTheGround >= Self.wcagAAForNonTextContrast,
-                "the label token": labelsDiffer
-            ]
-            XCTAssertTrue(
-                indicators.values.contains(true),
-                "in \(band) nothing separates a selected chip from an unselected one: \(indicators.keys.sorted().joined(separator: ", ")) all fall short"
-            )
-        }
+    func testEveryBoundaryAlsoDrawnAsInkClearsTheNonTextRatioOnEveryScreenGround() {
+        let foregrounds = Self.boundariesAlsoDrawnAsInk
+        XCTAssertFalse(
+            foregrounds.isEmpty,
+            "no token is placed in both .boundary and .text, so this sweep asserts nothing about the strokes a state is drawn with"
+        )
+        let failures = shortfalls(
+            foregrounds,
+            on: HDToken.tokens(in: .screenGround),
+            below: Self.wcagAAForNonTextContrast
+        )
+        XCTAssertEqual(
+            failures, [],
+            "\(failures.count) boundary-as-ink pairs fall below \(Self.wcagAAForNonTextContrast):1 on a screen ground: \(failures.joined(separator: ", ")); this sweep reaches neither \(Self.boundariesDrawnOnAnInvertedGround.map(\.rawValue).sorted()), which are drawn on an inverted ground and are covered by the rendered selection sweep in FeaturesTests, nor \(Self.boundariesThatAreDecorationOnly.map(\.rawValue).sorted()), which carry no state and sit between 1.15:1 and 1.85:1 against every screen ground"
+        )
     }
 
     func testTheBoundaryIsWhatSeparatesThemInDarkAndTheFillIsWhatSeparatesThemInLight() {
