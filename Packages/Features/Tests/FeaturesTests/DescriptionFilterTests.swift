@@ -126,6 +126,29 @@ final class DescriptionFilterTests: XCTestCase {
         }
     }
 
+    func testEveryBranchOfTheListItReadsOutIsPinned() {
+        let cases: [(labels: [String], reads: String)] = [
+            ([], "a description"),
+            (["What is it doing?"], "\u{201C}What is it doing?\u{201D}"),
+            (["What is it doing?", "Where"], "\u{201C}What is it doing?\u{201D} and \u{201C}Where\u{201D}"),
+            (
+                ["What is it doing?", "Where", "Anything else"],
+                "\u{201C}What is it doing?\u{201D}, \u{201C}Where\u{201D}, and \u{201C}Anything else\u{201D}"
+            )
+        ]
+        for (labels, reads) in cases {
+            let summary = DescriptionRejection(signals: [.phoneNumber], fieldLabels: labels).summary
+            XCTAssertTrue(
+                summary.contains("can't go in \(reads) \u{2014}"),
+                "\(labels.count) field labels read as something other than \(reads.debugDescription): \(summary)"
+            )
+        }
+        XCTAssertEqual(
+            Set(cases.map(\.labels.count)), [0, 1, 2, 3],
+            "the list helper has four branches and this test drives \(Set(cases.map(\.labels.count)).sorted())"
+        )
+    }
+
     func testEmptyDescriptionIsNotRejectedByTheContactFilterItself() {
         XCTAssertNil(rejectionSignals(""))
     }
