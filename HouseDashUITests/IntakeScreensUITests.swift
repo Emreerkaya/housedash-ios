@@ -7,6 +7,63 @@ final class IntakeScreensUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    private static let auditedCategories: [XCUIAccessibilityAuditType] = [
+        .contrast,
+        .elementDetection,
+        .hitRegion,
+        .sufficientElementDescription,
+        .textClipped,
+        .dynamicType,
+        .trait
+    ]
+
+    private static let tabBarLabels = ["Fix", "Jobs", "Photo", "DIY", "Profile"]
+
+    private func regionTheAuditCanSample(_ app: XCUIApplication) -> CGRect {
+        let window = app.windows.firstMatch.frame
+        var bars = Self.tabBarLabels.map { app.buttons[$0] }
+        bars.append(app.buttons["action-bar-cta"])
+        let barTop = bars
+            .filter { $0.exists }
+            .map { $0.frame.minY }
+            .min()
+        guard let barTop, barTop > window.minY else { return window }
+        return CGRect(x: window.minX, y: window.minY, width: window.width, height: barTop - window.minY)
+    }
+
+    private final class AuditFindings: @unchecked Sendable {
+        private let lock = NSLock()
+        private var lines: [String] = []
+
+        func record(_ line: String) {
+            lock.lock()
+            lines.append(line)
+            lock.unlock()
+        }
+
+        var all: [String] {
+            lock.lock()
+            defer { lock.unlock() }
+            return lines
+        }
+    }
+
+    private func auditEveryCategory(_ app: XCUIApplication, on stage: String) {
+        let region = regionTheAuditCanSample(app)
+        let findings = AuditFindings()
+        for category in Self.auditedCategories {
+            try? app.performAccessibilityAudit(for: category) { @Sendable issue in
+                guard let element = issue.element, region.contains(element.frame) else { return true }
+                findings.record("\(issue.compactDescription) on '\(element.label)' at \(element.frame)")
+                return true
+            }
+        }
+        XCTAssertEqual(
+            findings.all, [],
+            "performAccessibilityAudit on \(stage) reports \(findings.all.count) issues inside the \(region) it can sample: \(findings.all.joined(separator: " · "))"
+        )
+    }
+
     private func attach(_ app: XCUIApplication, named name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name
@@ -171,15 +228,18 @@ final class IntakeScreensUITests: XCTestCase {
         attach(app, named: "A01-launch")
         reachTheTabRootWithoutTyping(app)
         attach(app, named: "B01-fix")
+        auditEveryCategory(app, on: "B01 at the default content size")
 
         reachPickTheProblem(app)
         attach(app, named: "B02-pick-the-problem")
+        auditEveryCategory(app, on: "B02 at the default content size")
 
         app.buttons["Drips constantly, Worse when the hot tap is on, $90–140"].tap()
         app.buttons["Next"].tap()
         settle()
         XCTAssertTrue(app.staticTexts["Describe it"].waitForExistence(timeout: 10))
         attach(app, named: "B03-describe-it-clean")
+        auditEveryCategory(app, on: "B03 at the default content size")
 
         type(app, into: app.textFields["What is it doing?"], "call me on 917-555-0199 about the tap")
         app.buttons["See both ways to fix it"].tap()
@@ -198,6 +258,7 @@ final class IntakeScreensUITests: XCTestCase {
         settle()
         XCTAssertTrue(app.staticTexts["Photograph it"].waitForExistence(timeout: 10))
         attach(app, named: "B06-photograph-it")
+        auditEveryCategory(app, on: "B06 at the default content size")
 
         app.buttons["Take photo"].tap()
         settle()
@@ -215,6 +276,7 @@ final class IntakeScreensUITests: XCTestCase {
         settle()
         XCTAssertTrue(app.staticTexts["In your own words"].waitForExistence(timeout: 10))
         attach(app, named: "B04-something-else")
+        auditEveryCategory(app, on: "B04 at the default content size")
 
         type(app, into: app.textFields["In your own words"], "The radiator in the back bedroom never gets hot.")
         app.buttons["See both ways to fix it"].tap()
@@ -230,6 +292,7 @@ final class IntakeScreensUITests: XCTestCase {
         settle()
         XCTAssertTrue(app.staticTexts["Show us the problem"].waitForExistence(timeout: 10))
         attach(app, named: "B05-photo")
+        auditEveryCategory(app, on: "B05 at the default content size")
 
         app.buttons["Take photo"].tap()
         settle()
@@ -237,6 +300,7 @@ final class IntakeScreensUITests: XCTestCase {
         settle()
         XCTAssertTrue(app.staticTexts["A few details"].waitForExistence(timeout: 10))
         attach(app, named: "B07-a-few-details")
+        auditEveryCategory(app, on: "B07 at the default content size")
 
         type(app, into: app.textFields["What is it doing?"], "Drips constantly from the tap.")
         app.buttons["See both ways to fix it"].tap()
@@ -252,6 +316,7 @@ final class IntakeScreensUITests: XCTestCase {
         reachTheTabRootWithoutTyping(app)
         settle()
         attach(app, named: "AX5-B01-fix")
+        auditEveryCategory(app, on: "B01 at the largest content size")
 
         for label in ["What needs fixing?", "Common in a kitchen", "Under $100", "Worth doing before winter"] {
             XCTAssertTrue(
@@ -262,6 +327,7 @@ final class IntakeScreensUITests: XCTestCase {
 
         reachPickTheProblem(app)
         attach(app, named: "AX5-B02-pick-the-problem")
+        auditEveryCategory(app, on: "B02 at the largest content size")
 
         app.buttons["Drips constantly, Worse when the hot tap is on, $90–140"].tap()
         app.buttons["Next"].tap()
@@ -269,6 +335,7 @@ final class IntakeScreensUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Describe it"].waitForExistence(timeout: 10))
         settle()
         attach(app, named: "AX5-B03-describe-it")
+        auditEveryCategory(app, on: "B03 at the largest content size")
         XCTAssertTrue(
             app.staticTexts["Dripping tap or faucet"].exists,
             "the chosen problem title is broken up or missing at the largest content size"
@@ -279,6 +346,7 @@ final class IntakeScreensUITests: XCTestCase {
         settle()
         XCTAssertTrue(app.staticTexts["Photograph it"].waitForExistence(timeout: 10))
         attach(app, named: "AX5-B06-photograph-it")
+        auditEveryCategory(app, on: "B06 at the largest content size")
         app.buttons["Back"].tap()
         settle()
 
@@ -289,6 +357,7 @@ final class IntakeScreensUITests: XCTestCase {
         settle()
         XCTAssertTrue(app.staticTexts["In your own words"].waitForExistence(timeout: 10))
         attach(app, named: "AX5-B04-something-else")
+        auditEveryCategory(app, on: "B04 at the largest content size")
 
         app.buttons["Back"].tap()
         settle()
@@ -302,6 +371,7 @@ final class IntakeScreensUITests: XCTestCase {
             "the camera title truncates at the largest content size"
         )
         attach(app, named: "AX5-B05-photo")
+        auditEveryCategory(app, on: "B05 at the largest content size")
 
         app.buttons["Take photo"].tap()
         settle()
@@ -310,5 +380,6 @@ final class IntakeScreensUITests: XCTestCase {
         settle()
         XCTAssertTrue(app.staticTexts["A few details"].waitForExistence(timeout: 10))
         attach(app, named: "AX5-B07-a-few-details")
+        auditEveryCategory(app, on: "B07 at the largest content size")
     }
 }
