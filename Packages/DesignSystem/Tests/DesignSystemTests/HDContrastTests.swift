@@ -197,6 +197,56 @@ final class HDContrastTests: XCTestCase {
         )
     }
 
+    func testNoStateCanBeMarkedByTheContextFillAloneBecauseItIsDarkerThanEveryGroundInDark() {
+        let groundsAMarkIsDrawnOn = HDToken.tokens(in: .screenGround)
+            + HDToken.tokens(in: .controlGround)
+            + [HDToken.hairline]
+        XCTAssertFalse(groundsAMarkIsDrawnOn.isEmpty, "this sweep has no ground to draw on, so it asserts nothing")
+        var separatesInDark: [String] = []
+        var failsToSeparateInLight: [String] = []
+        for ground in groundsAMarkIsDrawnOn {
+            let dark = HDContrast.ratio(of: .context, on: ground, in: .dark)
+            let light = HDContrast.ratio(of: .context, on: ground, in: .light)
+            if dark >= Self.wcagAAForNonTextContrast {
+                separatesInDark.append("context/\(ground) is \(String(format: "%.2f", dark)):1 in dark")
+            }
+            if light < Self.wcagAAForNonTextContrast {
+                failsToSeparateInLight.append("context/\(ground) is \(String(format: "%.2f", light)):1 in light")
+            }
+        }
+        XCTAssertEqual(
+            separatesInDark, [],
+            "context now separates from a ground in dark, so a component may mark a state by filling with it alone and the boundary this palette forces is no longer load-bearing: \(separatesInDark.joined(separator: ", "))"
+        )
+        XCTAssertEqual(
+            failsToSeparateInLight, [],
+            "context no longer separates in light either, so the fill carries a state in neither band: \(failsToSeparateInLight.joined(separator: ", "))"
+        )
+    }
+
+    func testTheBoundaryThatHasToAccompanyAContextFillSeparatesWhereTheFillCannot() {
+        let groundsAMarkIsDrawnOn = HDToken.tokens(in: .screenGround)
+            + HDToken.tokens(in: .controlGround)
+            + [HDToken.hairline]
+        var shortfalls: [String] = []
+        for ground in groundsAMarkIsDrawnOn {
+            let ratio = HDContrast.ratio(of: .onContext, on: ground, in: .dark)
+            if ratio < Self.wcagAAForNonTextContrast {
+                shortfalls.append("onContext/\(ground) is \(String(format: "%.2f", ratio)):1 in dark")
+            }
+        }
+        for band in HDBand.allCases {
+            let ratio = HDContrast.ratio(of: .onContext, on: .context, in: band)
+            if ratio < Self.wcagAAForNonTextContrast {
+                shortfalls.append("onContext/context is \(String(format: "%.2f", ratio)):1 in \(band)")
+            }
+        }
+        XCTAssertEqual(
+            shortfalls, [],
+            "every state this palette marks with a context fill carries an onContext boundary because the fill cannot separate in dark, and that boundary now fails to separate somewhere: \(shortfalls.joined(separator: ", "))"
+        )
+    }
+
     func testThePhotoCountBadgeIsNotBoundToTheTokenItsCircleIsFilledWith() {
         for band in HDBand.allCases {
             XCTAssertEqual(

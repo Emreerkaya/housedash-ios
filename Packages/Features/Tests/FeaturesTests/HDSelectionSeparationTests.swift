@@ -14,6 +14,8 @@ final class HDSelectionSeparationTests: XCTestCase {
     private static let alphaAPixelMustCarryToBeRead: UInt8 = 200
     private static let traitTheScanTreatsAsASelectionState = ".isSelected"
     private static let filesTheScanExpectsAtLeast = 1
+    private static let leastShareOfDifferingPixelsAMarkMustSeparate = 0.05
+    private static let pairsWhoseSecondStateIsInactive: Set<String> = ["HDActionBar"]
 
     private struct StatePair {
         let component: String
@@ -81,6 +83,12 @@ final class HDSelectionSeparationTests: XCTestCase {
                 width: 402,
                 selected: onTheGround(HDTabBarTasker(active: .requests) { _ in }, width: 402),
                 unselected: onTheGround(HDTabBarTasker(active: .calendar) { _ in }, width: 402)
+            ),
+            StatePair(
+                component: "HDBubble",
+                width: 280,
+                selected: onTheGround(HDBubble("On my way, about ten minutes", side: .outgoing), width: 280),
+                unselected: onTheGround(HDBubble("On my way, about ten minutes", side: .incoming), width: 280)
             ),
             StatePair(
                 component: "HDActionBar",
@@ -196,6 +204,13 @@ final class HDSelectionSeparationTests: XCTestCase {
                     failures.append(
                         "\(pair.component) in \(scheme): \(String(format: "%.2f", found.differingShare * 100))% of readable pixels differ and the best differing pair is only \(String(format: "%.2f", found.best)):1, under \(Self.wcagNonTextContrast):1"
                     )
+                    continue
+                }
+                guard !Self.pairsWhoseSecondStateIsInactive.contains(pair.component) else { continue }
+                if found.separatedShare < Self.leastShareOfDifferingPixelsAMarkMustSeparate {
+                    failures.append(
+                        "\(pair.component) in \(scheme): only \(String(format: "%.2f", found.separatedShare * 100))% of its differing pixels reach \(Self.wcagNonTextContrast):1, under the floor, so the difference a person sees is not the difference that carries the state"
+                    )
                 }
             }
         }
@@ -205,7 +220,7 @@ final class HDSelectionSeparationTests: XCTestCase {
         )
         XCTAssertEqual(
             failures, [],
-            "\(failures.count) of \(measured) component-and-band combinations draw a state their neighbour is not separated from; this sweep measures the best-separated differing pixel and does not require the separated pixels to form a region a person would notice: \(failures.joined(separator: " · "))"
+            "\(failures.count) of \(measured) component-and-band combinations draw a state their neighbour is not separated from; the statistic that carries the verdict is separatedShare, the share of differing pixels reaching \(Self.wcagNonTextContrast):1, with a floor of \(String(format: "%.0f", Self.leastShareOfDifferingPixelsAMarkMustSeparate * 100))%, and best is only a second leg that catches a state drawn nowhere; \(Self.pairsWhoseSecondStateIsInactive.sorted()) are exempt from the floor because their second state is an inactive control, which 1.4.11 does not require to be separated: \(failures.joined(separator: " · "))"
         )
     }
 
