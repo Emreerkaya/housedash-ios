@@ -261,6 +261,18 @@ final class HDRepairTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(HDTimeSlider.thumbTapTarget, 44)
     }
 
+    func testFieldBindingReflectsExternalStateBothWays() {
+        let (binding, box) = mutableBinding("")
+        var field = HDField(label: "Where", placeholder: "Kitchen", text: binding)
+        XCTAssertEqual(field.text, "")
+
+        box.value = "Living room"
+        XCTAssertEqual(field.text, "Living room")
+
+        field.text = "Garage"
+        XCTAssertEqual(box.value, "Garage")
+    }
+
     func testRatingBarsAndCalendarHeadRequireTheirData() {
         let rows = [HDRatingBarsRow(star: 5, percent: 1.0)]
         XCTAssertEqual(HDRatingBars(rows: rows).rows, rows)
