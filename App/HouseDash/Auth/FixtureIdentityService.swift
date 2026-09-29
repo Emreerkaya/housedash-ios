@@ -1,5 +1,4 @@
 #if DEBUG
-import DesignSystem
 import Features
 
 struct FixtureIdentityService: IdentityService {

@@ -1,4 +1,3 @@
-import DesignSystem
 @testable import Features
 
 final class FakeIdentityService: IdentityService, @unchecked Sendable {
