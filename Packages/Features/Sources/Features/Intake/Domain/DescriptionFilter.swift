@@ -15,26 +15,35 @@ public enum ContactSignalKind: String, Sendable, CaseIterable, Equatable {
 }
 
 public struct DescriptionRejection: Sendable, Equatable {
-    public let signals: [ContactSignalKind]
+    public static let anUnnamedField = "a description"
 
-    public init(signals: [ContactSignalKind]) {
+    public let signals: [ContactSignalKind]
+    public let fieldLabels: [String]
+
+    public init(signals: [ContactSignalKind], fieldLabels: [String] = []) {
         self.signals = signals
+        self.fieldLabels = fieldLabels
     }
 
     public var summary: String {
-        let kinds = signals.map(\.guidance)
-        let joined: String
-        switch kinds.count {
+        "This looks like it includes \(listed(signals.map(\.guidance))). Every job is coordinated and paid through HouseDash, so contact details and payment links can't go in \(whereItWasTyped) — remove that part and you're set."
+    }
+
+    private var whereItWasTyped: String {
+        fieldLabels.isEmpty ? Self.anUnnamedField : listed(fieldLabels.map { "\u{201C}\($0)\u{201D}" })
+    }
+
+    private func listed(_ parts: [String]) -> String {
+        switch parts.count {
         case 0:
-            joined = "something"
+            return "something"
         case 1:
-            joined = kinds[0]
+            return parts[0]
         case 2:
-            joined = "\(kinds[0]) and \(kinds[1])"
+            return "\(parts[0]) and \(parts[1])"
         default:
-            joined = kinds.dropLast().joined(separator: ", ") + ", and " + kinds[kinds.count - 1]
+            return parts.dropLast().joined(separator: ", ") + ", and " + parts[parts.count - 1]
         }
-        return "This looks like it includes \(joined). Every job is coordinated and paid through HouseDash, so contact details and payment links can't go in a description — remove that part and you're set."
     }
 }
 
@@ -60,36 +69,125 @@ public struct Description: Sendable, Equatable {
 }
 
 public enum DescriptionFilter {
-    private static let groupedNANPPhone = try! NSRegularExpression(
-        pattern: #"(?:\+?1[-.\s]?)?\(?(?<!\d)\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}(?!\d)"#
+    public static let digitsInADialableNumber = 10
+    public static let digitsInTheLineGroup = 4
+    public static let digitsInAPhoneNumber = 9...15
+    public static let digitsInTheGroupBeforeTheLine = 3...4
+    public static let mostDigitsInAPhoneGroup = 6
+    public static let phoneGroupsADialableNumberHas = 3...6
+    public static let fewestDomainLabels = 2
+
+    private static let phoneCandidate = expression(
+        #"\+?+\p{Nd}(?:[^\p{L}\p{Nd},;:]{0,8}+\p{Nd}){0,31}+"#
     )
-    private static let email = try! NSRegularExpression(
-        pattern: #"[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63})*\.[A-Za-z]{2,24}(?![A-Za-z])"#
+    private static let digitGroup = expression(#"\p{Nd}++"#)
+    private static let emailCandidate = expression(
+        #"(?i)[A-Za-z0-9._%+\-]{1,64}+@([A-Za-z0-9\-]{1,63}+(?:\.[A-Za-z0-9\-]{1,63}+)*+)"#
     )
-    private static let cashtag = try! NSRegularExpression(
-        pattern: #"(?<![A-Za-z0-9])\$[A-Za-z][A-Za-z0-9_]{1,14}\b"#
-    )
-    private static let paymentLink = try! NSRegularExpression(
-        pattern: #"\b(?:cash\.app|venmo\.com|paypal\.me)/\S+"#,
-        options: .caseInsensitive
+    private static let topLevelLabel = expression(#"^[A-Za-z]{2,24}$"#)
+    private static let cashtag = expression(#"(?<![A-Za-z0-9])\$[A-Za-z][A-Za-z0-9_]{1,14}+\b"#)
+    private static let paymentLink = expression(
+        #"(?i)\b(?:cash\.app|venmo\.com|paypal\.me)/\S+"#
     )
 
+    static let categoriesStrippedBeforeMatching: Set<Unicode.GeneralCategory> = [
+        .format, .nonspacingMark, .spacingMark, .enclosingMark
+    ]
+
+    static let lineBreaksADescriptionBoxCreates: Set<Unicode.Scalar> = [
+        "\n", "\r", "\t", "\u{0B}", "\u{0C}", "\u{85}", "\u{2028}", "\u{2029}"
+    ]
+
     public static func signals(in text: String) -> [ContactSignalKind] {
+        let folded = foldedForMatchingOnly(text)
         var found: [ContactSignalKind] = []
-        if matches(email, in: text) {
+        if holdsEmailAddress(in: folded) {
             found.append(.emailAddress)
         }
-        if matches(groupedNANPPhone, in: text) {
+        if holdsPhoneNumber(in: folded) {
             found.append(.phoneNumber)
         }
-        if matches(cashtag, in: text) || matches(paymentLink, in: text) {
+        if matches(cashtag, in: folded) || matches(paymentLink, in: folded) {
             found.append(.paymentHandle)
         }
         return found
     }
 
+    static func foldedForMatchingOnly(_ text: String) -> String {
+        var folded = String.UnicodeScalarView()
+        for scalar in text.decomposedStringWithCompatibilityMapping.unicodeScalars {
+            if categoriesStrippedBeforeMatching.contains(scalar.properties.generalCategory) { continue }
+            if lineBreaksADescriptionBoxCreates.contains(scalar) {
+                folded.append(" ")
+            } else if let shape = digitThisShapeStandsFor(scalar) {
+                folded.append(shape)
+            } else {
+                folded.append(scalar)
+            }
+        }
+        return String(folded)
+    }
+
+    static func digitThisShapeStandsFor(_ scalar: Unicode.Scalar) -> Unicode.Scalar? {
+        guard scalar.properties.generalCategory != .decimalNumber else { return nil }
+        guard let value = scalar.properties.numericValue, value >= 0, value <= 9 else { return nil }
+        let digit = Int(value)
+        guard Double(digit) == value else { return nil }
+        return Unicode.Scalar(UInt8(UInt8(ascii: "0") + UInt8(digit)))
+    }
+
+    static func holdsPhoneNumber(in text: String) -> Bool {
+        candidates(phoneCandidate, in: text).contains(where: isDialable)
+    }
+
+    static func isDialable(_ candidate: String) -> Bool {
+        let groups = candidates(digitGroup, in: candidate).map(\.count)
+        let digits = groups.reduce(0, +)
+        guard digitsInAPhoneNumber.contains(digits) else { return false }
+        if candidate.hasPrefix("+") { return true }
+        guard
+            phoneGroupsADialableNumberHas.contains(groups.count),
+            groups.allSatisfy({ $0 <= mostDigitsInAPhoneGroup }),
+            digits == digitsInADialableNumber,
+            groups.last == digitsInTheLineGroup,
+            digitsInTheGroupBeforeTheLine.contains(groups[groups.count - 2])
+        else { return false }
+        return true
+    }
+
+    static func holdsEmailAddress(in text: String) -> Bool {
+        domains(in: text).contains(where: hasDomainShape)
+    }
+
+    static func hasDomainShape(_ domain: String) -> Bool {
+        let labels = domain.split(separator: ".", omittingEmptySubsequences: false)
+        guard labels.count >= fewestDomainLabels, let last = labels.last else { return false }
+        return matches(topLevelLabel, in: String(last))
+    }
+
+    static func domains(in text: String) -> [String] {
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        return emailCandidate.matches(in: text, range: range).compactMap { match in
+            Range(match.range(at: 1), in: text).map { String(text[$0]) }
+        }
+    }
+
+    private static func candidates(_ regex: NSRegularExpression, in text: String) -> [String] {
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        return regex.matches(in: text, range: range).compactMap { match in
+            Range(match.range, in: text).map { String(text[$0]) }
+        }
+    }
+
     private static func matches(_ regex: NSRegularExpression, in text: String) -> Bool {
         let range = NSRange(text.startIndex..<text.endIndex, in: text)
         return regex.firstMatch(in: text, range: range) != nil
+    }
+
+    private static func expression(_ pattern: String) -> NSRegularExpression {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            preconditionFailure("Malformed filter pattern \(pattern)")
+        }
+        return regex
     }
 }
