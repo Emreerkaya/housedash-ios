@@ -3,11 +3,13 @@ import SwiftUI
 public struct HDField: View {
     private let label: String
     private let placeholder: String
+    @Binding private var text: String
     private let trailing: String?
 
-    public init(label: String, placeholder: String, trailing: String? = nil) {
+    public init(label: String, placeholder: String, text: Binding<String>, trailing: String? = nil) {
         self.label = label
         self.placeholder = placeholder
+        self._text = text
         self.trailing = trailing
     }
 
@@ -16,7 +18,14 @@ public struct HDField: View {
             HDText(label, style: HDType.caption, color: .hdInkSoft)
 
             HStack(spacing: 0) {
-                HDText(placeholder, style: HDType.body, color: .hdInkFaint)
+                TextField(
+                    text: $text,
+                    prompt: Text(placeholder).foregroundStyle(Color.hdInkFaint)
+                ) {
+                    Text(placeholder)
+                }
+                .hdTypeStyle(HDType.body)
+                .foregroundStyle(Color.hdInk)
                 Spacer(minLength: 0)
                 if let trailing {
                     HDText(trailing, style: HDType.label, color: .hdInkSoft)
