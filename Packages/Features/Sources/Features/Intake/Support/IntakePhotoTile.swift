@@ -8,30 +8,24 @@ enum IntakePhotoTileKind {
 
 struct IntakePhotoTile: View {
     let kind: IntakePhotoTileKind
-    var height: CGFloat = 108
+    var minimumHeight: CGFloat = 108
     var cornerRadius: CGFloat = 8
     var action: (() -> Void)?
 
     var body: some View {
-        Group {
-            switch kind {
-            case .captured(let timestampLabel):
-                capturedTile(timestampLabel: timestampLabel)
-            case .add(let caption):
-                addTile(caption: caption)
-            }
+        switch kind {
+        case .captured(let timestampLabel):
+            capturedTile(timestampLabel: timestampLabel)
+        case .add(let caption):
+            addTile(caption: caption)
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: height)
     }
 
     private func capturedTile(timestampLabel: String) -> some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(Color.hdSurfaceSunk)
-            .overlay(alignment: .bottomLeading) {
-                HDText(timestampLabel, style: HDType.caption, color: .hdInkSoft)
-                    .padding(8)
-            }
+        HDText(timestampLabel, style: HDType.caption, color: .hdInkSoft)
+            .padding(8)
+            .frame(maxWidth: .infinity, minHeight: minimumHeight, alignment: .bottomLeading)
+            .background(Color.hdSurfaceSunk, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Photo added at \(timestampLabel)")
     }
@@ -40,15 +34,19 @@ struct IntakePhotoTile: View {
         Button {
             action?()
         } label: {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .strokeBorder(Color.hdHairline, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
-                .background(Color.hdGround, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                .overlay {
-                    VStack(spacing: 4) {
-                        HDText("+", style: HDType.section, color: .hdInkFaint)
-                        HDText(caption, style: HDType.caption, color: .hdInkFaint)
-                    }
-                }
+            VStack(spacing: 4) {
+                HDText("+", style: HDType.section, color: .hdInkFaint)
+                HDText(caption, style: HDType.caption, color: .hdInkFaint)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, minHeight: minimumHeight)
+            .background(Color.hdGround, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(Color.hdHairline, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+            )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(caption)
