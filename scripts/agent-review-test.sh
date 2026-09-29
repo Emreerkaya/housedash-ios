@@ -36,11 +36,16 @@ touched_domain='Packages/Features/Sources/Features/Intake/Domain/DescriptionFilt
 untouched='README.md'
 
 review() {
-    local dimension=$1 verdict=$2 at=${3:-$sha} push=${4:-true} assoc=${5:-OWNER} tail=${6:-}
+    local dimension=$1 verdict=$2 at=${3:-$sha} push=${4:-true} assoc=${5:-OWNER} tail=${6:-} state=${7:-COMMENTED} typename=${8:-User}
     local body="Some prose about the change.\n\n<!-- review-sha: ${at} dimension: ${dimension} verdict: ${verdict} -->"
     [ -n "$tail" ] && body="${body}\n\n${tail}"
-    printf '{"state":"COMMENTED","authorAssociation":"%s","authorCanPushToRepository":%s,"author":{"login":"someone","__typename":"User"},"body":"%s"}' \
-        "$assoc" "$push" "$body"
+    printf '{"state":"%s","authorAssociation":"%s","authorCanPushToRepository":%s,"author":{"login":"someone","__typename":"%s"},"body":"%s"}' \
+        "$state" "$assoc" "$push" "$typename" "$body"
+}
+
+review_as() {
+    local state=$1 typename=$2 dimension=$3 verdict=$4
+    review "$dimension" "$verdict" "$sha" true OWNER "" "$state" "$typename"
 }
 
 set_of() { printf '[%s]' "$(printf '%s,' "$@" | sed 's/,$//')"; }
@@ -144,6 +149,22 @@ check 'a blocked review blocks even when this diff does not require its dimensio
 check 'a malformed verdict fails closed even on a dimension this diff does not require' 1 "$untouched" \
     "$(set_of "$(review accessibility clean)" "$(review architecture clean)" "$(review testing clean)" "$(review security blockedd)")" \
     'is not one of the verdicts'
+
+check 'a CHANGES_REQUESTED review carrying blocked still blocks' 1 "$untouched" \
+    "$(set_of "$(review_as CHANGES_REQUESTED User accessibility blocked)" "$(review architecture clean)" "$(review testing clean)")" \
+    'reports verdict blocked'
+
+check 'a DISMISSED review does not count' 1 "$untouched" \
+    "$(set_of "$(review_as DISMISSED User accessibility clean)" "$(review architecture clean)" "$(review testing clean)")" \
+    'is not entitled to gate a merge'
+
+check 'a review by a bot does not count' 1 "$untouched" \
+    "$(set_of "$(review_as COMMENTED Bot accessibility clean)" "$(review architecture clean)" "$(review testing clean)")" \
+    'is not entitled to gate a merge'
+
+check 'a later clean review does not clear an earlier blocked one at the same sha' 1 "$untouched" \
+    "$(set_of "$(review accessibility blocked)" "$(review accessibility clean)" "$(review architecture clean)" "$(review testing clean)")" \
+    'reports verdict blocked'
 
 check 'an empty diff refuses to pass vacuously' 2 "" "$all_five" 'refusing to pass vacuously'
 
