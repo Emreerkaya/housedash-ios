@@ -20,6 +20,7 @@ let package = Package(
         .testTarget(
             name: "FeaturesTests",
             dependencies: ["Features"],
+            resources: [.copy("Resources/i7-corpus.tsv")],
             swiftSettings: [.swiftLanguageMode(.v6)]
         )
     ]
