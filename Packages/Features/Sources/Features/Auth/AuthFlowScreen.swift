@@ -13,10 +13,10 @@ public struct AuthFlowScreen: View {
     public var body: some View {
         NavigationStack(path: $model.path) {
             A01ContinueScreen(model: model)
-                .navigationBarBackButtonHidden(true)
+                .hdFlowScreen()
                 .navigationDestination(for: AuthRoute.self) { route in
                     destination(for: route)
-                        .navigationBarBackButtonHidden(true)
+                        .hdFlowScreen()
                 }
         }
     }

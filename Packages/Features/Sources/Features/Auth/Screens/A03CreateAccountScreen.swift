@@ -48,7 +48,6 @@ public struct A03CreateAccountScreen: View {
                 }
             }
         }
-        .background(Color.hdGround.ignoresSafeArea())
     }
 
     private var tagline: String {

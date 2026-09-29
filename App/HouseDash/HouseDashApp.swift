@@ -7,13 +7,16 @@ struct HouseDashApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if authenticatedRole != nil {
-                HDRootTabView(problemCatalogue: Self.makeProblemCatalogue(), camera: Self.makeCamera())
-            } else {
-                AuthFlowScreen(identityService: Self.makeIdentityService()) { role in
-                    authenticatedRole = role
+            Group {
+                if authenticatedRole != nil {
+                    HDRootTabView(problemCatalogue: Self.makeProblemCatalogue(), camera: Self.makeCamera())
+                } else {
+                    AuthFlowScreen(identityService: Self.makeIdentityService()) { role in
+                        authenticatedRole = role
+                    }
                 }
             }
+            .hdAppChrome()
         }
     }
 

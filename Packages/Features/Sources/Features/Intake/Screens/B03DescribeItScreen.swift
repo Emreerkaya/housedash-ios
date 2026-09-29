@@ -49,7 +49,6 @@ struct B03DescribeItScreen: View {
                 }
             }
         }
-        .background(Color.hdGround.ignoresSafeArea())
         .hdAnnounce(model.announcement) { model.acknowledgeAnnouncement() }
         .hdTabBarHidden()
     }

@@ -32,7 +32,6 @@ struct B07AFewDetailsScreen: View {
                 }
             }
         }
-        .background(Color.hdGround.ignoresSafeArea())
         .hdAnnounce(model.announcement) { model.acknowledgeAnnouncement() }
     }
 

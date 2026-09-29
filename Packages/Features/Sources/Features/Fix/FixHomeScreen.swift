@@ -11,10 +11,10 @@ public struct FixHomeScreen: View {
     public var body: some View {
         NavigationStack(path: $model.path) {
             B01FixScreen(model: model)
-                .navigationBarBackButtonHidden(true)
+                .hdFlowScreen()
                 .navigationDestination(for: IntakeRoute.self) { route in
                     destination(for: route)
-                        .navigationBarBackButtonHidden(true)
+                        .hdFlowScreen()
                 }
         }
     }

@@ -48,7 +48,6 @@ public struct A02WelcomeBackScreen: View {
                 }
             }
         }
-        .background(Color.hdGround.ignoresSafeArea())
     }
 
     var forgotPasswordRow: some View {
