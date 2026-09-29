@@ -49,6 +49,7 @@ public struct HDHeader: View {
 
             if let title {
                 HDText(title, style: HDType.titleLarge, color: .hdInk)
+                    .accessibilityAddTraits(.isHeader)
             }
         }
         .padding(.horizontal, HDSpacing.margin)
