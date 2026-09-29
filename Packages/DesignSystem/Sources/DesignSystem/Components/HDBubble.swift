@@ -49,7 +49,7 @@ public struct HDBubble: View {
         switch side {
         case .incoming:
             RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
-                .stroke(Color.hdHairline, lineWidth: 1)
+                .strokeBorder(Color.hdHairline, lineWidth: 1)
         case .outgoing:
             EmptyView()
         }
