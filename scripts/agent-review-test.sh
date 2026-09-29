@@ -166,6 +166,26 @@ check 'a later clean review does not clear an earlier blocked one at the same sh
     "$(set_of "$(review accessibility blocked)" "$(review accessibility clean)" "$(review architecture clean)" "$(review testing clean)")" \
     'reports verdict blocked'
 
+check 'a capitalised verdict is malformed rather than invisible' 1 "$untouched" \
+    "$(set_of "$(review accessibility clean)" "$(review architecture clean)" "$(review testing clean)" "$(review security Blocked)")" \
+    'is not one of the verdicts'
+
+check 'a capitalised blocked beside a clean one on the same required dimension still fails' 1 "$untouched" \
+    "$(set_of "$(review accessibility BLOCKED)" "$(review accessibility clean)" "$(review architecture clean)" "$(review testing clean)")" \
+    'is not one of the verdicts'
+
+check 'a verdict with trailing punctuation is malformed rather than invisible' 1 "$untouched" \
+    "$(set_of "$(review accessibility clean)" "$(review architecture clean)" "$(review testing clean)" "$(review security 'blocked.')")" \
+    'is not one of the verdicts'
+
+check 'a misspelled dimension is noted and not counted rather than blocking' 1 "$untouched" \
+    "$(set_of "$(review accessibilty clean)" "$(review architecture clean)" "$(review testing clean)")" \
+    'missing: no accessibility review'
+
+check 'a dimension holding a regex metacharacter reads as missing, it does not satisfy the real one' 1 "$untouched" \
+    "$(set_of "$(review 'a.cessibility' clean)" "$(review architecture clean)" "$(review testing clean)")" \
+    'missing: no accessibility review'
+
 check 'an empty diff refuses to pass vacuously' 2 "" "$all_five" 'refusing to pass vacuously'
 
 check 'a body with CRLF line endings still counts, as the web UI sends them' 0 "$untouched" \
