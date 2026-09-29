@@ -377,6 +377,38 @@ final class IntakeFlowRoutingTests: XCTestCase {
         XCTAssertNil(model.completedSubmission?.problem)
     }
 
+    func testARealSymptomWithNoProblemBehindItDoesNotBecomeTheEscapeHatch() {
+        let (model, _) = makeModel()
+        let symptom = FakeProblemCatalogue.drippingTapSymptoms[0]
+        model.symptoms = FakeProblemCatalogue.drippingTapSymptoms
+        model.photos = [CapturedPhoto(id: "photo-1", timestampLabel: "09:41")]
+        XCTAssertNil(model.selectedProblem, "this test needs the problem missing, and it is not")
+        XCTAssertFalse(symptom.isEscapeHatch, "this test needs a real symptom, and it has the escape hatch")
+
+        model.selectSymptomForReview(symptom)
+        model.confirmSymptomSelection()
+
+        XCTAssertEqual(
+            model.path, [],
+            "a real symptom with no problem behind it navigated to \(model.path), and the only screen it can reach that way is the escape hatch's, which has no photo strip and submits problem: nil"
+        )
+        XCTAssertEqual(
+            model.photos.map(\.id), ["photo-1"],
+            "the refused transition still threw away the captured photos on its way to nowhere"
+        )
+    }
+
+    func testTheEscapeHatchStillRoutesWithNoProblemBehindIt() {
+        let (model, _) = makeModel()
+        model.symptoms = FakeProblemCatalogue.drippingTapSymptoms
+        model.selectSymptomForReview(FakeProblemCatalogue.escapeHatch)
+        model.confirmSymptomSelection()
+        XCTAssertEqual(
+            model.path, [.somethingElse],
+            "the escape hatch needs no problem behind it and the refusal above is now swallowing it too"
+        )
+    }
+
     private func reachDescribeIt(_ model: IntakeFlowModel) async {
         await model.selectProblem(FakeProblemCatalogue.drippingTap)
         model.selectSymptomForReview(FakeProblemCatalogue.drippingTapSymptoms[0])

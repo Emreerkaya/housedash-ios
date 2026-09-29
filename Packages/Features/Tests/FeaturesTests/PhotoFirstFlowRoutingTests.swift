@@ -96,4 +96,23 @@ final class PhotoFirstFlowRoutingTests: XCTestCase {
         XCTAssertEqual(model.path, [])
         XCTAssertNil(model.rejection, "the banner must not survive back-navigation and reappear stale")
     }
+    func testTheRefusalNamesTheBoxOnThePhotoFirstPathToo() {
+        let model = PhotoFirstFlowModel(camera: FakeCamera())
+        model.capturePhoto()
+        model.reviewPhotos()
+        model.descriptionText = "call me on 917-555-0199 about the radiator"
+        model.submit()
+
+        let rejection = model.rejection
+        XCTAssertEqual(
+            rejection?.fieldLabels, [PhotoFirstFlowModel.descriptionFieldLabel],
+            "the photo-first path mints an empty label set, so its refusal says \(DescriptionRejection.anUnnamedField.debugDescription) where B03's names the box the text was typed into"
+        )
+        XCTAssertTrue(
+            rejection?.summary.contains(PhotoFirstFlowModel.descriptionFieldLabel) == true,
+            "the summary a person reads on B07 does not name the one field the screen has: \(rejection?.summary ?? "no rejection at all")"
+        )
+        XCTAssertNil(model.completedSubmission, "the refused description was submitted anyway")
+    }
+
 }
