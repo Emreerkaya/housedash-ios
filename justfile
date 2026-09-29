@@ -19,6 +19,13 @@ ios-test: ios-generate
         ( cd "Packages/$package" && xcodebuild -scheme "$package" -destination "$destination" test )
     done
 
+ios-test-ui: ios-generate
+    #!/usr/bin/env bash
+    set -euo pipefail
+    destination="platform=iOS Simulator,name=$(scripts/simulator.sh)"
+    echo "testing the UI suite on ${destination}"
+    xcodebuild -scheme HouseDashUITests -destination "$destination" test
+
 commits base="origin/main":
     scripts/check-commits.sh {{base}}
 

@@ -60,3 +60,18 @@ jobs:
           path: |
             ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
           if-no-files-found: ignore
+
+  ios-test-ui:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      - run: brew install xcodegen
+      - run: just ios-test-ui
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-ui-test-results
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
+          if-no-files-found: ignore
