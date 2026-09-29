@@ -18,18 +18,27 @@ struct B04SomethingElseScreen: View {
                     IntakeRejectionBanner(rejection: rejection)
                 }
 
-                IntakeComposer(
+                HDField(
+                    label: "In your own words",
                     placeholder: "The radiator in the back bedroom never gets hot, even with the valve fully open.",
-                    text: $model.descriptionText
+                    text: $model.descriptionText,
+                    axis: .vertical,
+                    showsLabel: false,
+                    minimumVisibleLines: 4
                 )
             }
             .safeAreaInset(edge: .bottom) {
-                HDActionBar(ctaTitle: "See both ways to fix it") {
+                HDActionBar(
+                    ctaTitle: "See both ways to fix it",
+                    isCTAEnabled: model.canSubmit,
+                    disabledExplanation: "describe the problem first"
+                ) {
                     model.submit()
                 }
             }
         }
         .background(Color.hdGround.ignoresSafeArea())
+        .hdAnnounce(model.announcement) { model.acknowledgeAnnouncement() }
         .hdTabBarHidden()
     }
 }

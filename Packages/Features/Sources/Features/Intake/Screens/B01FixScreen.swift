@@ -2,28 +2,24 @@ import DesignSystem
 import SwiftUI
 
 struct B01FixScreen: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     @Bindable var model: IntakeFlowModel
 
     var body: some View {
         VStack(spacing: 0) {
             HDHeader(title: "What needs fixing?")
             HDScreen {
-                if let description = model.completedDescription {
-                    completionNotice(description)
+                if let submission = model.completedSubmission {
+                    IntakeCaseReadyNotice(submission: submission, tone: .onSurface) {
+                        model.acknowledgeCompletion()
+                    }
                 }
                 rooms
                 ForEach(model.rails) { rail in
                     HDItemStack {
                         railHeading(rail.heading)
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(rail.cards) { card in
-                                    IntakeCard(problem: card) {
-                                        Task { await model.selectProblem(card) }
-                                    }
-                                }
-                            }
-                        }
+                        railStack(rail)
                     }
                 }
                 if !model.isLoadingRails && model.rails.isEmpty {
@@ -36,13 +32,38 @@ struct B01FixScreen: View {
             }
         }
         .background(Color.hdGround.ignoresSafeArea())
+        .hdAnnounce(model.announcement) { model.acknowledgeAnnouncement() }
         .task(id: model.selectedRoom) {
             await model.loadRails()
         }
     }
 
     func railHeading(_ heading: String) -> some View {
-        HDText(heading, style: HDType.bodyStrong, color: .hdInk)
+        HDGroupHeading(heading)
+    }
+
+    @ViewBuilder
+    func railStack(_ rail: ProblemRail) -> some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: HDSpacing.item) {
+                cards(rail)
+            }
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: HDSpacing.item) {
+                    cards(rail)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func cards(_ rail: ProblemRail) -> some View {
+        ForEach(rail.cards) { card in
+            IntakeCard(problem: card) {
+                Task { await model.selectProblem(card) }
+            }
+        }
     }
 
     private var rooms: some View {
@@ -55,27 +76,5 @@ struct B01FixScreen: View {
                 }
             }
         }
-    }
-
-    private func completionNotice(_ description: Description) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HDText("Case ready: \"\(description.text)\"", style: HDType.bodyStrong, color: .hdInk)
-            HDText(
-                "Comparing the DIY guide against nearby people isn't built yet — that's next.",
-                style: HDType.caption,
-                color: .hdInkSoft
-            )
-            Button("Got it") {
-                model.acknowledgeCompletion()
-            }
-            .buttonStyle(.plain)
-            .frame(minHeight: 44)
-            .hdTypeStyle(HDType.label)
-            .foregroundStyle(Color.hdInkSoft)
-            .accessibilityAddTraits(.isButton)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.hdSurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }

@@ -8,8 +8,8 @@ struct B06PhotographItScreen: View {
         CameraCaptureScreen(
             chrome: .pushed(title: "Photograph it", onBack: { model.finishPhotoCapture() }),
             capturedCount: model.photos.count,
-            onCapture: { model.capturePhoto() },
-            onReview: nil
+            isCaptureAvailable: model.isCameraAvailable,
+            onCapture: { model.capturePhoto() }
         )
         .hdTabBarHidden()
     }
