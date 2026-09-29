@@ -11,11 +11,11 @@ public struct HDHeader: View {
         }
     }
 
-    private let title: String
+    private let title: String?
     private let onBack: (() -> Void)?
     private let action: Action?
 
-    public init(title: String, onBack: (() -> Void)? = nil, action: Action? = nil) {
+    public init(title: String?, onBack: (() -> Void)? = nil, action: Action? = nil) {
         self.title = title
         self.onBack = onBack
         self.action = action
@@ -28,9 +28,11 @@ public struct HDHeader: View {
                     if let onBack {
                         Button(action: onBack) {
                             HDText("‹", style: HDType.chevron, color: .hdInk)
-                                .frame(width: 44, alignment: .leading)
+                                .frame(width: 44, height: 44, alignment: .leading)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel("Back")
+                        .accessibilityAddTraits(.isButton)
                     }
 
                     Spacer(minLength: 0)
@@ -45,7 +47,9 @@ public struct HDHeader: View {
                 .clipped()
             }
 
-            HDText(title, style: HDType.titleLarge, color: .hdInk)
+            if let title {
+                HDText(title, style: HDType.titleLarge, color: .hdInk)
+            }
         }
         .padding(.horizontal, HDSpacing.margin)
         .padding(.top, 10)
