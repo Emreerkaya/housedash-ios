@@ -27,9 +27,9 @@ final class HDSelectionSeparationTests: XCTestCase {
         "IntakePickRow"
     ]
     private static let swiftFilesUnderEachPackagesSources = [
-        "DesignSystem": 34,
-        "Features": 40,
-        "Networking": 3
+        "DesignSystem": 35,
+        "Features": 39,
+        "Networking": 4
     ]
     private static let typeDeclaration = "\\b(?:struct|class|enum|actor)\\s+([A-Za-z_][A-Za-z0-9_]*)"
     private static let conformanceDeclaration =

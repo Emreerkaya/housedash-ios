@@ -14,7 +14,7 @@ final class IntakeScreensRenderTests: XCTestCase {
     private static let supportedWidths: [CGFloat] = [402, 375, 320]
     private static let pointsWCAGAsksForATouchTarget: CGFloat = 44
     private static let tallestAnUnstackedRowCanBe: CGFloat = 80
-    private static let swiftFilesUnderTheFeaturesSources = 40
+    private static let swiftFilesUnderTheFeaturesSources = 39
 
     private func measuredSize<V: View>(
         _ view: V,

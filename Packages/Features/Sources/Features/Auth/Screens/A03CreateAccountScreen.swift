@@ -4,9 +4,6 @@ import SwiftUI
 public struct A03CreateAccountScreen: View {
     @Bindable var model: AuthFlowModel
 
-    @State private var password: String = ""
-    @State private var isRevealed: Bool = false
-
     public init(model: AuthFlowModel) {
         self.model = model
     }
@@ -27,17 +24,8 @@ public struct A03CreateAccountScreen: View {
                         model.changeIdentifier()
                     }
 
-                    HDField(
-                        label: "Password",
-                        placeholder: "At least 8 characters",
-                        text: $password,
-                        isSecure: !isRevealed
-                    ) {
-                        HDPasswordRevealButton(isRevealed: $isRevealed)
-                    }
-
                     HDPrimaryButton("Create account") {
-                        Task { await model.createAccount(password: password) }
+                        Task { await model.createAccount() }
                     }
                 }
 

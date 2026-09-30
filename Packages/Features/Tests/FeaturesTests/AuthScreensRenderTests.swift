@@ -33,6 +33,11 @@ final class AuthScreensRenderTests: XCTestCase {
         XCTAssertFalse(bodyTypeName(screen).contains("HDRoleIsland"))
     }
 
+    func testIslandIsAbsentOnVerifyCode() {
+        let screen = A06VerifyCodeScreen(model: makeModel())
+        XCTAssertFalse(bodyTypeName(screen).contains("HDRoleIsland"))
+    }
+
     func testIslandIsPresentOnWelcomeBack() {
         let screen = A02WelcomeBackScreen(model: makeModel(), knownRoles: [.nester, .tasker])
         XCTAssertTrue(bodyTypeName(screen).contains("HDRoleIsland"))
@@ -48,9 +53,9 @@ final class AuthScreensRenderTests: XCTestCase {
         XCTAssertFalse(bodyTypeName(screen).contains("HDRoleIsland"))
     }
 
-    func testIslandIsAbsentOnResetPassword() {
-        let screen = A05ResetPasswordScreen(model: makeModel())
-        XCTAssertFalse(bodyTypeName(screen).contains("HDRoleIsland"))
+    func testIdentifierCarriesForwardOntoVerifyCode() {
+        let screen = A06VerifyCodeScreen(model: makeModel(identifier: "dana@example.com"))
+        XCTAssertTrue(bodyTypeName(screen).contains("HDIdentityRow"))
     }
 
     func testIdentifierCarriesForwardOntoWelcomeBack() {
@@ -65,11 +70,6 @@ final class AuthScreensRenderTests: XCTestCase {
 
     func testA01HasNoIdentityRowBecauseNobodyIsIdentifiedYet() {
         let screen = A01ContinueScreen(model: makeModel())
-        XCTAssertFalse(bodyTypeName(screen).contains("HDIdentityRow"))
-    }
-
-    func testA05DoesNotCarryTheIdentityRowItReEntersTheIdentifier() {
-        let screen = A05ResetPasswordScreen(model: makeModel())
         XCTAssertFalse(bodyTypeName(screen).contains("HDIdentityRow"))
     }
 
@@ -112,16 +112,10 @@ final class AuthScreensRenderTests: XCTestCase {
         XCTAssertGreaterThan(huge.height, normal.height)
     }
 
-    func testResetPasswordGrowsInsteadOfClippingAtLargestAccessibilitySize() {
-        let normal = measuredSize(A05ResetPasswordScreen(model: makeModel()), dynamicTypeSize: .large)
-        let huge = measuredSize(A05ResetPasswordScreen(model: makeModel()), dynamicTypeSize: .accessibility5)
+    func testVerifyCodeGrowsInsteadOfClippingAtLargestAccessibilitySize() {
+        let normal = measuredSize(A06VerifyCodeScreen(model: makeModel()), dynamicTypeSize: .large)
+        let huge = measuredSize(A06VerifyCodeScreen(model: makeModel()), dynamicTypeSize: .accessibility5)
         XCTAssertGreaterThan(huge.height, normal.height)
-    }
-
-    func testForgotPasswordMeetsTheFortyFourPointTouchTarget() {
-        let screen = A02WelcomeBackScreen(model: makeModel(), knownRoles: [.nester, .tasker])
-        let size = measuredSize(screen.forgotPasswordRow)
-        XCTAssertGreaterThanOrEqual(size.height, 44)
     }
 
     func testNotNowMeetsTheFortyFourPointTouchTarget() {
@@ -130,9 +124,9 @@ final class AuthScreensRenderTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(size.height, 44)
     }
 
-    func testPasswordRevealButtonMeetsTheFortyFourPointTouchTarget() {
-        let size = measuredSize(HDPasswordRevealButton(isRevealed: .constant(false)))
-        XCTAssertGreaterThanOrEqual(size.width, 44)
+    func testResendRowMeetsTheFortyFourPointTouchTarget() {
+        let screen = A06VerifyCodeScreen(model: makeModel())
+        let size = measuredSize(screen.resendRow)
         XCTAssertGreaterThanOrEqual(size.height, 44)
     }
 }

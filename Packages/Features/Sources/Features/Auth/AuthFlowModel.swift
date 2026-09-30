@@ -1,6 +1,15 @@
 import Foundation
 import Observation
 
+public enum OTPBannerState: Sendable, Equatable {
+    case codeSent
+    case wrongCode
+    case codeExpired
+    case tooManyAttempts
+    case rateLimited(retryAfterSeconds: Int)
+    case offline
+}
+
 @MainActor
 @Observable
 public final class AuthFlowModel {
@@ -9,8 +18,10 @@ public final class AuthFlowModel {
     public var selectedRole: HDRole = .nester
     public var errorMessage: String?
     public var isSubmitting: Bool = false
+    public var otpBanner: OTPBannerState?
+    public var cooldownRemaining: Int = 0
 
-    private var rememberedPassword: String = ""
+    private var cooldownTask: Task<Void, Never>?
     private let identityService: IdentityService
     private let onAuthenticated: (HDRole) -> Void
 
@@ -22,6 +33,8 @@ public final class AuthFlowModel {
     public func changeIdentifier() {
         path = []
         errorMessage = nil
+        otpBanner = nil
+        cancelCooldown()
     }
 
     public func submitIdentifier() async {
@@ -31,16 +44,12 @@ public final class AuthFlowModel {
         defer { isSubmitting = false }
 
         do {
-            switch try await identityService.lookup(identifier: identifier) {
-            case .existingAccount(let roles):
-                selectedRole = roles.contains(.nester) ? .nester : .tasker
-                path = [.signIn(knownRoles: roles)]
-            case .newIdentifier:
-                selectedRole = .nester
-                path = [.createAccount]
-            }
+            let cooldown = try await identityService.requestCode(identifier: identifier)
+            otpBanner = .codeSent
+            beginCooldown(seconds: cooldown)
+            path = [.verifyCode]
         } catch {
-            errorMessage = "Something went wrong. Try again."
+            errorMessage = Self.identifierSubmissionMessage(for: error)
         }
     }
 
@@ -49,36 +58,54 @@ public final class AuthFlowModel {
         path = [.createAccount]
     }
 
-    public func signIn(password: String) async {
-        errorMessage = nil
-        isSubmitting = true
-        defer { isSubmitting = false }
-
+    public func resendCode() async {
+        guard cooldownRemaining == 0 else { return }
         do {
-            let outcome = try await identityService.signIn(identifier: identifier, password: password)
-            guard case .signedIn(let role, let roles) = outcome else { return }
-            rememberedPassword = password
-            if roles.count == 1 {
-                path.append(.addOtherProfile(existingRole: role))
-            } else {
-                onAuthenticated(role)
-            }
+            let cooldown = try await identityService.requestCode(identifier: identifier)
+            otpBanner = .codeSent
+            beginCooldown(seconds: cooldown)
         } catch {
-            errorMessage = "That password doesn't match this account."
+            applyFailure(error)
         }
     }
 
-    public func createAccount(password: String) async {
+    public func verifyCode(_ code: String) async {
+        isSubmitting = true
+        defer { isSubmitting = false }
+
+        do {
+            let result = try await identityService.verifyCode(identifier: identifier, code: code)
+            otpBanner = nil
+            cancelCooldown()
+            switch result {
+            case .existingAccount(let roles):
+                selectedRole = roles.contains(.nester) ? .nester : .tasker
+                path = [.signIn(knownRoles: roles)]
+            case .newIdentifier:
+                selectedRole = .nester
+                path = [.createAccount]
+            }
+        } catch {
+            applyFailure(error)
+        }
+    }
+
+    public func completeSignIn() {
+        guard case .signIn(let knownRoles) = path.last else { return }
+        if knownRoles.count == 1 {
+            path.append(.addOtherProfile(existingRole: selectedRole))
+        } else {
+            onAuthenticated(selectedRole)
+        }
+    }
+
+    public func createAccount() async {
         errorMessage = nil
         isSubmitting = true
         defer { isSubmitting = false }
 
         do {
-            let outcome = try await identityService.createAccount(
-                identifier: identifier,
-                password: password,
-                role: selectedRole
-            )
+            let outcome = try await identityService.createAccount(identifier: identifier, role: selectedRole)
             guard case .accountCreated(let role) = outcome else { return }
             onAuthenticated(role)
         } catch {
@@ -91,11 +118,7 @@ public final class AuthFlowModel {
         defer { isSubmitting = false }
 
         do {
-            let outcome = try await identityService.createAccount(
-                identifier: identifier,
-                password: rememberedPassword,
-                role: role
-            )
+            let outcome = try await identityService.createAccount(identifier: identifier, role: role)
             guard case .accountCreated(let addedRole) = outcome else { return }
             onAuthenticated(addedRole)
         } catch {
@@ -107,11 +130,50 @@ public final class AuthFlowModel {
         onAuthenticated(currentRole)
     }
 
-    public func requestPasswordReset() {
-        path = []
+    private func applyFailure(_ error: Error) {
+        let banner = Self.bannerState(for: error)
+        otpBanner = banner
+        if case .rateLimited(let seconds) = banner {
+            beginCooldown(seconds: seconds)
+        }
     }
 
-    public func goToResetPassword() {
-        path.append(.resetPassword)
+    private func beginCooldown(seconds: Int) {
+        cancelCooldown()
+        cooldownRemaining = max(seconds, 0)
+        guard cooldownRemaining > 0 else { return }
+        cooldownTask = Task { @MainActor [weak self] in
+            while let self, self.cooldownRemaining > 0 {
+                try? await Task.sleep(for: .seconds(1))
+                if Task.isCancelled { return }
+                self.cooldownRemaining = max(self.cooldownRemaining - 1, 0)
+            }
+        }
+    }
+
+    private func cancelCooldown() {
+        cooldownTask?.cancel()
+        cooldownTask = nil
+        cooldownRemaining = 0
+    }
+
+    private static func bannerState(for error: Error) -> OTPBannerState {
+        guard let serviceError = error as? IdentityServiceError else { return .offline }
+        switch serviceError {
+        case .wrongCode: return .wrongCode
+        case .codeExpired: return .codeExpired
+        case .tooManyAttempts: return .tooManyAttempts
+        case .rateLimited(let seconds): return .rateLimited(retryAfterSeconds: seconds)
+        case .offline, .notImplemented: return .offline
+        }
+    }
+
+    private static func identifierSubmissionMessage(for error: Error) -> String {
+        guard let serviceError = error as? IdentityServiceError else { return "Something went wrong. Try again." }
+        switch serviceError {
+        case .offline: return "You're offline. Check your connection and try again."
+        case .rateLimited: return "Too many attempts. Try again shortly."
+        case .wrongCode, .codeExpired, .tooManyAttempts, .notImplemented: return "Something went wrong. Try again."
+        }
     }
 }

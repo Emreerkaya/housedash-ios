@@ -217,6 +217,21 @@ final class HDAuthComponentsTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(huge.width, normal.width)
     }
 
+    func testCodeEntryFieldHoldsSixDigits() {
+        XCTAssertEqual(HDCodeEntryField.digitCount, 6)
+    }
+
+    func testCodeEntryFieldSanitizesPastedInputToDigitsOnly() {
+        XCTAssertEqual(HDCodeEntryField.sanitize("12a3!4 56"), "123456")
+    }
+
+    func testCodeEntryFieldRendersAllSixBoxesAtDefaultTextSize() {
+        let size = measuredSize(CodeEntryFieldHost(code: "12").frame(width: 353))
+        let expectedWidth = HDCodeEntryField.boxSize * 6 + HDCodeEntryField.boxSpacing * 5
+        XCTAssertGreaterThanOrEqual(size.height, HDCodeEntryField.boxSize)
+        XCTAssertLessThanOrEqual(expectedWidth, 353)
+    }
+
     func testRoleIslandThumbFillIsContextNeverInkNeverAccent() {
         let context = UIColor(Color.hdContext)
         let ink = UIColor(Color.hdInk)
@@ -249,6 +264,15 @@ final class HDAuthComponentsTests: XCTestCase {
             XCTAssertNotEqual(resolvedContext, accentDIY.resolvedColor(with: trait))
             XCTAssertNotEqual(resolvedContext, accentHire.resolvedColor(with: trait))
         }
+    }
+}
+
+private struct CodeEntryFieldHost: View {
+    @State var code: String
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HDCodeEntryField(code: $code, isInErrorState: false, isFocused: $isFocused)
     }
 }
 #endif

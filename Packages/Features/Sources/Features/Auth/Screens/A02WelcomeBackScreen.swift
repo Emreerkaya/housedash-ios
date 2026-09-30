@@ -5,9 +5,6 @@ public struct A02WelcomeBackScreen: View {
     @Bindable var model: AuthFlowModel
     let knownRoles: Set<HDRole>
 
-    @State private var password: String = ""
-    @State private var isRevealed: Bool = false
-
     public init(model: AuthFlowModel, knownRoles: Set<HDRole>) {
         self.model = model
         self.knownRoles = knownRoles
@@ -27,41 +24,21 @@ public struct A02WelcomeBackScreen: View {
                         model.changeIdentifier()
                     }
 
-                    HDField(
-                        label: "Password",
-                        placeholder: "••••••••",
-                        text: $password,
-                        isSecure: !isRevealed
-                    ) {
-                        HDPasswordRevealButton(isRevealed: $isRevealed)
-                    }
+                    HDText(
+                        "You're verified. Continue as \(model.selectedRole.label.lowercased()).",
+                        style: HDType.body,
+                        color: .hdInkSoft
+                    )
 
-                    HDPrimaryButton("Sign in") {
-                        Task { await model.signIn(password: password) }
+                    HDPrimaryButton("Continue") {
+                        model.completeSignIn()
                     }
                 }
-
-                forgotPasswordRow
 
                 if let errorMessage = model.errorMessage {
                     HDText(errorMessage, style: HDType.caption, color: .hdAlert)
                 }
             }
-        }
-    }
-
-    var forgotPasswordRow: some View {
-        HStack {
-            Spacer(minLength: 0)
-            Button {
-                model.goToResetPassword()
-            } label: {
-                HDText("Forgot password?", style: HDType.caption, color: .hdInkSoft)
-                    .frame(minHeight: 44)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityAddTraits(.isButton)
         }
     }
 }

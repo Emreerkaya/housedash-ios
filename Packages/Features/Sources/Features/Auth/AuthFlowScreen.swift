@@ -24,14 +24,14 @@ public struct AuthFlowScreen: View {
     @ViewBuilder
     private func destination(for route: AuthRoute) -> some View {
         switch route {
+        case .verifyCode:
+            A06VerifyCodeScreen(model: model)
         case .signIn(let knownRoles):
             A02WelcomeBackScreen(model: model, knownRoles: knownRoles)
         case .createAccount:
             A03CreateAccountScreen(model: model)
         case .addOtherProfile(let existingRole):
             A04AddOtherProfileScreen(model: model, existingRole: existingRole)
-        case .resetPassword:
-            A05ResetPasswordScreen(model: model)
         }
     }
 }

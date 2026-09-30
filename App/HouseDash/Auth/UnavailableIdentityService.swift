@@ -1,15 +1,15 @@
 import Features
 
 struct UnavailableIdentityService: IdentityService {
-    func lookup(identifier: String) async throws -> IdentityLookupResult {
+    func requestCode(identifier: String) async throws -> Int {
         throw IdentityServiceError.notImplemented
     }
 
-    func signIn(identifier: String, password: String) async throws -> AuthOutcome {
+    func verifyCode(identifier: String, code: String) async throws -> IdentityLookupResult {
         throw IdentityServiceError.notImplemented
     }
 
-    func createAccount(identifier: String, password: String, role: HDRole) async throws -> AuthOutcome {
+    func createAccount(identifier: String, role: HDRole) async throws -> AuthOutcome {
         throw IdentityServiceError.notImplemented
     }
 }

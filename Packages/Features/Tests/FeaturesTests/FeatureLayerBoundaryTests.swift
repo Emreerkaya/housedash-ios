@@ -12,7 +12,7 @@ final class FeatureLayerBoundaryTests: XCTestCase {
         "Domain": 7,
         "Flow": 13,
         "Screens": 12,
-        "Support": 8
+        "Support": 7
     ]
     private static let featureDirectoriesTheScanMustCover: Set<String> = [
         "Auth",
@@ -33,7 +33,7 @@ final class FeatureLayerBoundaryTests: XCTestCase {
         "Intake/Domain/PhotoCapture.swift",
         "Intake/Domain/ProblemCatalogue.swift"
     ]
-    private static let importStatementsTheScanMustRead = 64
+    private static let importStatementsTheScanMustRead = 62
     private static let packagesTheWorkspaceHolds: Set<String> = ["DesignSystem", "Features", "Networking"]
     private static let packagesFeaturesMayDependOn: Set<String> = ["DesignSystem"]
     private static let layerOfAFileSittingDirectlyUnderItsFeature = "Flow"

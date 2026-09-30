@@ -11,22 +11,38 @@ final class AuthFlowRoutingTests: XCTestCase {
         return (model, service)
     }
 
-    func testKnownIdentifierRoutesToSignIn() async {
-        let (model, _) = makeModel()
+    func testSubmitIdentifierRequestsACodeAndRoutesToVerifyCode() async {
+        let (model, service) = makeModel()
         model.identifier = "dana@example.com"
 
         await model.submitIdentifier()
 
-        XCTAssertEqual(model.path, [.signIn(knownRoles: [.nester, .tasker])])
+        XCTAssertEqual(service.requestCodeCallCount, 1)
+        XCTAssertEqual(model.path, [.verifyCode])
+        XCTAssertEqual(model.otpBanner, .codeSent)
+        XCTAssertEqual(model.cooldownRemaining, service.requestCodeCooldown)
     }
 
-    func testNewIdentifierRoutesToCreateAccount() async {
-        let (model, _) = makeModel()
-        model.identifier = "brandnew@example.com"
+    func testSubmitIdentifierDoesNothingForAnEmptyIdentifier() async {
+        let (model, service) = makeModel()
+        model.identifier = "   "
 
         await model.submitIdentifier()
 
-        XCTAssertEqual(model.path, [.createAccount])
+        XCTAssertEqual(service.requestCodeCallCount, 0)
+        XCTAssertEqual(model.path, [])
+    }
+
+    func testSubmitIdentifierSurfacesAnInlineMessageWhenIssuanceIsRateLimited() async {
+        let (model, service) = makeModel()
+        model.identifier = "dana@example.com"
+        service.nextRequestCodeError = .rateLimited(retryAfterSeconds: 20)
+
+        await model.submitIdentifier()
+
+        XCTAssertEqual(model.path, [])
+        XCTAssertNotNil(model.errorMessage)
+        XCTAssertFalse(model.errorMessage!.lowercased().contains("account"))
     }
 
     func testIdentifierSurvivesAcrossEveryRouteChange() async {
@@ -36,7 +52,7 @@ final class AuthFlowRoutingTests: XCTestCase {
         await model.submitIdentifier()
         XCTAssertEqual(model.identifier, "dana@example.com")
 
-        model.goToResetPassword()
+        await model.verifyCode(FakeIdentityService.validCode)
         XCTAssertEqual(model.identifier, "dana@example.com")
 
         model.changeIdentifier()
@@ -53,25 +69,152 @@ final class AuthFlowRoutingTests: XCTestCase {
         XCTAssertEqual(model.path, [.createAccount])
     }
 
-    func testSignInToASingleRoleAccountOffersTheOtherProfileBeforeAuthenticating() async {
+    func testVerifyCodeForAnExistingSingleRoleAccountRoutesToSignIn() async {
+        let (model, _) = makeModel()
+        model.identifier = "solo@example.com"
+        await model.submitIdentifier()
+
+        await model.verifyCode(FakeIdentityService.validCode)
+
+        XCTAssertEqual(model.path, [.signIn(knownRoles: [.nester])])
+        XCTAssertEqual(model.selectedRole, .nester)
+        XCTAssertNil(model.otpBanner)
+    }
+
+    func testVerifyCodeForAnExistingDualRoleAccountRoutesToSignIn() async {
+        let (model, _) = makeModel()
+        model.identifier = "dana@example.com"
+        await model.submitIdentifier()
+
+        await model.verifyCode(FakeIdentityService.validCode)
+
+        XCTAssertEqual(model.path, [.signIn(knownRoles: [.nester, .tasker])])
+    }
+
+    func testVerifyCodeForANewIdentifierRoutesToCreateAccount() async {
+        let (model, _) = makeModel()
+        model.identifier = "brandnew@example.com"
+        await model.submitIdentifier()
+
+        await model.verifyCode(FakeIdentityService.validCode)
+
+        XCTAssertEqual(model.path, [.createAccount])
+        XCTAssertEqual(model.selectedRole, .nester)
+    }
+
+    func testWrongCodeSurfacesTheWrongCodeBannerRatherThanNavigating() async {
+        let (model, _) = makeModel()
+        model.identifier = "dana@example.com"
+        await model.submitIdentifier()
+
+        await model.verifyCode("000000")
+
+        XCTAssertEqual(model.path, [.verifyCode])
+        XCTAssertEqual(model.otpBanner, .wrongCode)
+    }
+
+    func testCodeExpiredSurfacesTheExpiredBannerRatherThanNavigating() async {
+        let (model, service) = makeModel()
+        model.identifier = "dana@example.com"
+        await model.submitIdentifier()
+        service.nextVerifyCodeError = .codeExpired
+
+        await model.verifyCode(FakeIdentityService.validCode)
+
+        XCTAssertEqual(model.path, [.verifyCode])
+        XCTAssertEqual(model.otpBanner, .codeExpired)
+    }
+
+    func testTooManyAttemptsSurfacesItsOwnBannerRatherThanTheGenericWrongCodeOne() async {
+        let (model, service) = makeModel()
+        model.identifier = "dana@example.com"
+        await model.submitIdentifier()
+        service.nextVerifyCodeError = .tooManyAttempts
+
+        await model.verifyCode(FakeIdentityService.validCode)
+
+        XCTAssertEqual(model.otpBanner, .tooManyAttempts)
+    }
+
+    func testOfflineDuringVerifySurfacesTheOfflineBanner() async {
+        let (model, service) = makeModel()
+        model.identifier = "dana@example.com"
+        await model.submitIdentifier()
+        service.nextVerifyCodeError = .offline
+
+        await model.verifyCode(FakeIdentityService.validCode)
+
+        XCTAssertEqual(model.otpBanner, .offline)
+    }
+
+    func testResendIsRefusedWhileTheCooldownIsRunning() async {
+        let (model, service) = makeModel()
+        model.identifier = "dana@example.com"
+        await model.submitIdentifier()
+        XCTAssertGreaterThan(model.cooldownRemaining, 0)
+
+        await model.resendCode()
+
+        XCTAssertEqual(service.requestCodeCallCount, 1, "resend must not fire a second request while the cooldown is still running")
+    }
+
+    func testResendRequestsANewCodeOnceTheCooldownHasElapsed() async {
+        let (model, service) = makeModel()
+        model.identifier = "dana@example.com"
+        await model.submitIdentifier()
+        model.cooldownRemaining = 0
+
+        await model.resendCode()
+
+        XCTAssertEqual(service.requestCodeCallCount, 2)
+        XCTAssertEqual(model.otpBanner, .codeSent)
+    }
+
+    func testRateLimitedResendSetsTheBannerAndBeginsACooldownFromTheServersValue() async {
+        let (model, service) = makeModel()
+        model.identifier = "dana@example.com"
+        await model.submitIdentifier()
+        model.cooldownRemaining = 0
+        service.nextRequestCodeError = .rateLimited(retryAfterSeconds: 90)
+
+        await model.resendCode()
+
+        XCTAssertEqual(model.otpBanner, .rateLimited(retryAfterSeconds: 90))
+        XCTAssertEqual(model.cooldownRemaining, 90)
+    }
+
+    func testChangeIdentifierClearsTheOTPBannerAndCooldown() async {
+        let (model, _) = makeModel()
+        model.identifier = "dana@example.com"
+        await model.submitIdentifier()
+
+        model.changeIdentifier()
+
+        XCTAssertNil(model.otpBanner)
+        XCTAssertEqual(model.cooldownRemaining, 0)
+    }
+
+    func testCompleteSignInToASingleRoleAccountOffersTheOtherProfileBeforeAuthenticating() async {
         var authenticatedRoles: [HDRole] = []
         let (model, _) = makeModel(onAuthenticated: { authenticatedRoles.append($0) })
         model.identifier = "solo@example.com"
         await model.submitIdentifier()
+        await model.verifyCode(FakeIdentityService.validCode)
 
-        await model.signIn(password: "correct-horse")
+        model.completeSignIn()
 
         XCTAssertTrue(authenticatedRoles.isEmpty, "a single-profile account must see A04 before landing in the app")
         XCTAssertEqual(model.path.last, .addOtherProfile(existingRole: .nester))
     }
 
-    func testSignInToADualRoleAccountAuthenticatesDirectlyWithNoA04Offer() async {
+    func testCompleteSignInToADualRoleAccountAuthenticatesDirectlyWithNoA04Offer() async {
         var authenticatedRoles: [HDRole] = []
         let (model, _) = makeModel(onAuthenticated: { authenticatedRoles.append($0) })
         model.identifier = "dana@example.com"
         await model.submitIdentifier()
+        await model.verifyCode(FakeIdentityService.validCode)
 
-        await model.signIn(password: "correct-horse")
+        model.completeSignIn()
 
         XCTAssertEqual(authenticatedRoles, [.nester])
     }
@@ -81,34 +224,12 @@ final class AuthFlowRoutingTests: XCTestCase {
         let (model, _) = makeModel(onAuthenticated: { authenticatedRoles.append($0) })
         model.identifier = "brandnew@example.com"
         await model.submitIdentifier()
+        await model.verifyCode(FakeIdentityService.validCode)
         model.selectedRole = .tasker
 
-        await model.createAccount(password: "correct-horse")
+        await model.createAccount()
 
         XCTAssertEqual(authenticatedRoles, [.tasker])
-    }
-
-    func testWrongPasswordSurfacesAnErrorRatherThanAuthenticating() async {
-        var authenticatedRoles: [HDRole] = []
-        let (model, service) = makeModel(onAuthenticated: { authenticatedRoles.append($0) })
-        model.identifier = "unknown@example.com"
-        service.accounts["unknown@example.com"] = nil
-
-        await model.signIn(password: "whatever")
-
-        XCTAssertTrue(authenticatedRoles.isEmpty)
-        XCTAssertNotNil(model.errorMessage)
-    }
-
-    func testResetPasswordLinkSentReturnsToA01() {
-        let (model, _) = makeModel()
-        model.identifier = "dana@example.com"
-        model.goToResetPassword()
-        XCTAssertEqual(model.path, [.resetPassword])
-
-        model.requestPasswordReset()
-
-        XCTAssertEqual(model.path, [])
     }
 
     func testNotNowOnAddOtherProfileAuthenticatesWithTheExistingRoleOnly() {

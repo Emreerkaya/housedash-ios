@@ -9,12 +9,16 @@ public enum AuthOutcome: Sendable, Equatable {
 }
 
 public enum IdentityServiceError: Error, Sendable, Equatable {
-    case invalidCredentials
+    case wrongCode
+    case codeExpired
+    case tooManyAttempts
+    case rateLimited(retryAfterSeconds: Int)
+    case offline
     case notImplemented
 }
 
 public protocol IdentityService: Sendable {
-    func lookup(identifier: String) async throws -> IdentityLookupResult
-    func signIn(identifier: String, password: String) async throws -> AuthOutcome
-    func createAccount(identifier: String, password: String, role: HDRole) async throws -> AuthOutcome
+    func requestCode(identifier: String) async throws -> Int
+    func verifyCode(identifier: String, code: String) async throws -> IdentityLookupResult
+    func createAccount(identifier: String, role: HDRole) async throws -> AuthOutcome
 }

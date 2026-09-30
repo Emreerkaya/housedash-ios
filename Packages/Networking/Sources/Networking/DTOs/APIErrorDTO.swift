@@ -1,4 +1,9 @@
-public struct APIErrorDTO: Decodable, Sendable, Equatable {
+public struct APIErrorDTO: Codable, Sendable, Equatable {
     public let code: String
     public let message: String
+
+    public init(code: String, message: String) {
+        self.code = code
+        self.message = message
+    }
 }

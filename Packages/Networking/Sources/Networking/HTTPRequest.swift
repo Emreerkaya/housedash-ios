@@ -33,6 +33,6 @@ public struct HTTPRequest: Sendable {
 public enum HTTPClientError: Error, Sendable, Equatable {
     case invalidURL
     case invalidResponse
-    case serverError(statusCode: Int)
+    case serverError(statusCode: Int, apiError: APIErrorDTO?, retryAfterSeconds: Int?)
     case decodingFailed
 }

@@ -11,6 +11,13 @@ public func makeHouseDashJSONDecoder() -> JSONDecoder {
     return decoder
 }
 
+public func makeHouseDashJSONEncoder() -> JSONEncoder {
+    let encoder = JSONEncoder()
+    encoder.dateEncodingStrategy = .iso8601
+    encoder.keyEncodingStrategy = .convertToSnakeCase
+    return encoder
+}
+
 public struct URLSessionHTTPClient: HTTPClient {
     private let baseURL: URL
     private let session: URLSession
@@ -49,7 +56,13 @@ public struct URLSessionHTTPClient: HTTPClient {
             throw HTTPClientError.invalidResponse
         }
         guard (200..<300).contains(httpResponse.statusCode) else {
-            throw HTTPClientError.serverError(statusCode: httpResponse.statusCode)
+            let apiError = try? decoder.decode(APIErrorDTO.self, from: data)
+            let retryAfterSeconds = httpResponse.value(forHTTPHeaderField: "Retry-After").flatMap { Int($0) }
+            throw HTTPClientError.serverError(
+                statusCode: httpResponse.statusCode,
+                apiError: apiError,
+                retryAfterSeconds: retryAfterSeconds
+            )
         }
 
         do {

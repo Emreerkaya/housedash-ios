@@ -60,6 +60,7 @@ targets:
       - target: HouseDash
       - package: DesignSystem
       - package: Features
+      - package: Networking
 
   HouseDashUITests:
     type: bundle.ui-testing

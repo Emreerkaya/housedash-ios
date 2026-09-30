@@ -61,7 +61,37 @@ final class URLSessionHTTPClientTests: XCTestCase {
             let _: EchoDTO = try await client.send(HTTPRequest(path: "/echo"))
             XCTFail("expected serverError")
         } catch let error as HTTPClientError {
-            XCTAssertEqual(error, .serverError(statusCode: 500))
+            XCTAssertEqual(error, .serverError(statusCode: 500, apiError: nil, retryAfterSeconds: nil))
+        } catch {
+            XCTFail("unexpected error \(error)")
+        }
+    }
+
+    func testServerErrorDecodesTheAPIErrorBodyAndRetryAfterHeader() async {
+        StubURLProtocol.handler = { request in
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 429,
+                httpVersion: nil,
+                headerFields: ["Retry-After": "30"]
+            )!
+            let data = try! JSONEncoder().encode(APIErrorDTO(code: "rate_limited", message: "Too many requests"))
+            return (response, data)
+        }
+
+        let client = makeClient()
+        do {
+            let _: EchoDTO = try await client.send(HTTPRequest(path: "/echo"))
+            XCTFail("expected serverError")
+        } catch let error as HTTPClientError {
+            XCTAssertEqual(
+                error,
+                .serverError(
+                    statusCode: 429,
+                    apiError: APIErrorDTO(code: "rate_limited", message: "Too many requests"),
+                    retryAfterSeconds: 30
+                )
+            )
         } catch {
             XCTFail("unexpected error \(error)")
         }
